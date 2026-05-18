@@ -1,12 +1,8 @@
 use leptos::prelude::*;
-use leptos_use::{use_color_mode_with_options, ColorMode, UseColorModeOptions, UseColorModeReturn};
+use leptos_use::{ColorMode, UseColorModeOptions, UseColorModeReturn, use_color_mode_with_options};
 
 use crate::pages::{
-    dashboard::Dashboard,
-    landing::Landing,
-    login::Login,
-    profile::Profile,
-    register::Register,
+    dashboard::Dashboard, landing::Landing, login::Login, profile::Profile, register::Register,
 };
 
 #[derive(Clone, Debug, PartialEq)]
@@ -30,7 +26,7 @@ pub fn App() -> impl IntoView {
         UseColorModeOptions::default()
             .attribute("class")
             .emit_auto(true)
-            .initial_value(ColorMode::Dark)
+            .initial_value(ColorMode::Dark),
     );
 
     let toggle_mode = move |_| {
@@ -52,7 +48,7 @@ pub fn App() -> impl IntoView {
             }}
 
             // Theme Toggle FAB (Floating Action Button)
-            <button 
+            <button
                 class="fixed bottom-6 right-6 p-4 rounded-full shadow-lg bg-white dark:bg-gov-surface-dark text-gov-red hover:shadow-xl hover:scale-110 transition-all border border-neutral-200 dark:border-neutral-700 flex items-center justify-center z-50"
                 on:click=toggle_mode
                 title="Toggle Theme"
