@@ -4,34 +4,46 @@ use crate::models::{File, FileVisibility};
 #[component]
 pub fn FileCard(file: File) -> impl IntoView {
     let visibility_class = match file.visibility {
-        FileVisibility::Private => "text-red-400 bg-red-400/10 border-red-400/20",
-        FileVisibility::Public => "text-[#00f0ff] bg-[#00f0ff]/10 border-[#00f0ff]/20",
-        FileVisibility::OnlyFollowed => "text-[#ff00ff] bg-[#ff00ff]/10 border-[#ff00ff]/20",
+        FileVisibility::Private => "text-neutral-600 dark:text-neutral-400 bg-neutral-100 dark:bg-gov-surface-dark border-neutral-200 dark:border-neutral-700",
+        FileVisibility::Public => "text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/30 border-green-200 dark:border-green-800/50",
+        FileVisibility::Following => "text-orange-700 dark:text-orange-400 bg-orange-100 dark:bg-orange-900/30 border-orange-200 dark:border-orange-800/50",
+        FileVisibility::Followers => "text-teal-700 dark:text-teal-400 bg-teal-100 dark:bg-teal-900/30 border-teal-200 dark:border-teal-800/50",
     };
 
     let visibility_label = match file.visibility {
         FileVisibility::Private => "Private",
         FileVisibility::Public => "Public",
-        FileVisibility::OnlyFollowed => "Followers Only",
+        FileVisibility::Following => "Following",
+        FileVisibility::Followers => "Followers",
+    };
+
+    let icon = match file.visibility {
+        FileVisibility::Private => "lock",
+        FileVisibility::Public => "public",
+        FileVisibility::Following => "person_add",
+        FileVisibility::Followers => "groups",
     };
 
     view! {
-        <div class="group relative bg-[#131b2c] rounded-xl border border-gray-800 p-5 hover:border-[#00f0ff]/50 transition-all duration-300 hover:shadow-[0_0_20px_rgba(0,240,255,0.1)]">
+        <div class="group bg-white dark:bg-gov-surface-dark rounded-xl border border-neutral-200 dark:border-neutral-700 p-5 hover:border-gov-red dark:hover:border-gov-red transition-all duration-300 hover:shadow-md">
             <div class="flex justify-between items-start mb-4">
                 <div class="flex-1 min-w-0 pr-4">
-                    <h3 class="text-lg font-medium text-gray-100 truncate group-hover:text-[#00f0ff] transition-colors">
+                    <h3 class="text-lg font-bold text-neutral-900 dark:text-white truncate group-hover:text-gov-red transition-colors flex items-center">
+                        <span class="material-icons mr-2 text-neutral-400 group-hover:text-gov-red">"description"</span>
                         {file.name.clone()}
                     </h3>
-                    <p class="text-sm text-gray-400 mt-1">"Owner: " {file.owner.clone()}</p>
+                    <p class="text-sm text-neutral-500 dark:text-neutral-400 mt-2">"Owner: " <span class="font-medium text-neutral-700 dark:text-neutral-300">{file.owner.clone()}</span></p>
                 </div>
-                <span class=format!("px-2.5 py-1 text-xs font-semibold rounded border {}", visibility_class)>
+                <span class=format!("flex items-center px-2.5 py-1 text-xs font-semibold rounded-full border {}", visibility_class)>
+                    <span class="material-icons text-[14px] mr-1">{icon}</span>
                     {visibility_label}
                 </span>
             </div>
             
-            <div class="flex justify-between items-end mt-6">
-                <span class="text-xs text-gray-500">{format!("{} bytes", file.size)}</span>
-                <button class="px-3 py-1.5 text-sm font-medium text-[#00f0ff] bg-[#00f0ff]/10 rounded hover:bg-[#00f0ff]/20 transition-colors border border-[#00f0ff]/30">
+            <div class="flex justify-between items-end mt-6 border-t border-neutral-100 dark:border-neutral-700 pt-4">
+                <span class="text-xs font-medium text-neutral-500 dark:text-neutral-400">{format!("{} bytes", file.size)}</span>
+                <button class="px-4 py-2 text-sm font-bold text-gov-red bg-red-50 dark:bg-red-900/20 rounded hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors border border-red-100 dark:border-red-900/50 flex items-center">
+                    <span class="material-icons mr-1 text-[18px]">"download"</span>
                     "Download"
                 </button>
             </div>

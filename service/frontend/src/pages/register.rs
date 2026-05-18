@@ -6,13 +6,12 @@ pub fn Register() -> impl IntoView {
     let set_page = expect_context::<WriteSignal<Page>>();
 
     view! {
-        <div class="flex-1 flex items-center justify-center min-h-screen relative overflow-hidden p-4">
-            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#ff00ff]/10 rounded-full blur-[100px] pointer-events-none"></div>
-            
-            <div class="w-full max-w-md relative z-10 backdrop-blur-xl bg-[#131b2c]/80 border border-gray-800 rounded-2xl p-8 shadow-2xl">
-                <div class="text-center mb-8">
-                    <h2 class="text-3xl font-bold text-white mb-2 tracking-tight">"New Operative"</h2>
-                    <p class="text-gray-400">"Register for GovNet clearance."</p>
+        <div class="flex-1 flex items-center justify-center min-h-screen p-4 bg-gov-bg-light dark:bg-gov-bg-dark">
+            <div class="w-full max-w-md bg-white dark:bg-gov-surface-dark border border-neutral-200 dark:border-neutral-700 rounded-2xl p-8 shadow-lg">
+                <div class="text-center mb-8 flex flex-col items-center">
+                    <span class="material-icons text-5xl text-gov-red mb-4">"how_to_reg"</span>
+                    <h2 class="text-3xl font-bold text-neutral-900 dark:text-white mb-2 tracking-tight">"Citizen Registration"</h2>
+                    <p class="text-neutral-500 dark:text-neutral-400">"Create your official FlagDrive account."</p>
                 </div>
                 
                 <form class="space-y-6" on:submit=move |ev| {
@@ -20,20 +19,20 @@ pub fn Register() -> impl IntoView {
                     set_page.set(Page::Login);
                 }>
                     <div>
-                        <label class="block text-sm font-medium text-gray-300 mb-2">"Requested Codename"</label>
+                        <label class="block text-sm font-bold text-neutral-700 dark:text-neutral-300 mb-2">"Requested Federal ID"</label>
                         <input 
                             type="text" 
-                            class="w-full px-4 py-3 bg-gray-900/50 border border-gray-700 rounded-lg focus:outline-none focus:border-[#ff00ff] focus:ring-1 focus:ring-[#ff00ff] text-white transition-all"
-                            placeholder="agent_smith"
+                            class="w-full px-4 py-3 bg-neutral-50 dark:bg-gov-bg-dark border border-neutral-300 dark:border-neutral-600 rounded-lg focus:outline-none focus:border-gov-red focus:ring-1 focus:ring-gov-red text-neutral-900 dark:text-white transition-all"
+                            placeholder="e.g. citizen_492"
                             required
                         />
                     </div>
                     
                     <div>
-                        <label class="block text-sm font-medium text-gray-300 mb-2">"Passphrase"</label>
+                        <label class="block text-sm font-bold text-neutral-700 dark:text-neutral-300 mb-2">"Secure Password"</label>
                         <input 
                             type="password" 
-                            class="w-full px-4 py-3 bg-gray-900/50 border border-gray-700 rounded-lg focus:outline-none focus:border-[#ff00ff] focus:ring-1 focus:ring-[#ff00ff] text-white transition-all"
+                            class="w-full px-4 py-3 bg-neutral-50 dark:bg-gov-bg-dark border border-neutral-300 dark:border-neutral-600 rounded-lg focus:outline-none focus:border-gov-red focus:ring-1 focus:ring-gov-red text-neutral-900 dark:text-white transition-all"
                             placeholder="••••••••"
                             required
                         />
@@ -41,20 +40,20 @@ pub fn Register() -> impl IntoView {
                     
                     <button 
                         type="submit"
-                        class="w-full py-3 px-4 border-2 border-[#ff00ff] text-[#ff00ff] font-bold rounded-lg hover:bg-[#ff00ff] hover:text-black hover:shadow-[0_0_20px_rgba(255,0,255,0.4)] transition-all hover:-translate-y-0.5"
+                        class="w-full py-3 px-4 bg-white dark:bg-gov-surface-dark border-2 border-gov-red text-gov-red font-bold rounded-lg shadow-sm hover:bg-gov-red hover:text-white transition-all"
                     >
-                        "Submit Request"
+                        "Submit Application"
                     </button>
                 </form>
                 
-                <div class="mt-6 text-center">
-                    <p class="text-sm text-gray-400">
-                        "Already cleared? " 
+                <div class="mt-8 text-center pt-6 border-t border-neutral-100 dark:border-neutral-700">
+                    <p class="text-sm text-neutral-600 dark:text-neutral-400">
+                        "Already registered? " 
                         <span 
-                            class="text-[#ff00ff] hover:text-[#00f0ff] cursor-pointer transition-colors font-semibold"
+                            class="text-gov-red hover:underline cursor-pointer font-bold transition-colors"
                             on:click=move |_| set_page.set(Page::Login)
                         >
-                            "Authenticate Here"
+                            "Sign in here"
                         </span>
                     </p>
                 </div>

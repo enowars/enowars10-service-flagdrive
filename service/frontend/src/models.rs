@@ -2,7 +2,8 @@
 pub enum FileVisibility {
     Private,
     Public,
-    OnlyFollowed,
+    Following,
+    Followers,
 }
 
 #[derive(Debug, Clone, PartialEq)]

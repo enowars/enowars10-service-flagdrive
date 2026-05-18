@@ -1,44 +1,64 @@
 use leptos::prelude::*;
 use crate::app::Page;
+use crate::components::navbar::Navbar;
 
 #[component]
 pub fn Landing() -> impl IntoView {
     let set_page = expect_context::<WriteSignal<Page>>();
 
     view! {
-        <div class="flex-1 flex flex-col items-center justify-center relative overflow-hidden min-h-screen">
-            <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCI+CgkJPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMSIgZmlsbD0icmdiYSgyNTUsIDI1NSwgMjU1LCAwLjE1KSIvPgoJPC9zdmc+')] bg-repeat opacity-20"></div>
-            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#00f0ff]/20 rounded-full blur-[120px] pointer-events-none"></div>
-            <div class="absolute top-1/3 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-[#ff00ff]/20 rounded-full blur-[100px] pointer-events-none"></div>
+        <div class="flex flex-col min-h-screen">
+            <Navbar />
             
-            <div class="relative z-10 text-center max-w-4xl px-4 mt-[-10vh]">
-                <div class="mb-6 inline-block">
-                    <span class="px-3 py-1 text-xs font-bold tracking-widest uppercase border border-[#00f0ff]/50 text-[#00f0ff] rounded-full bg-[#00f0ff]/10">
-                        "Top Secret / SI / TK"
-                    </span>
+            <div class="flex-1 flex flex-col items-center justify-center relative px-4 py-16 sm:px-6 lg:px-8">
+                
+                <div class="relative z-10 text-center max-w-4xl mx-auto">
+                    <div class="mb-8 inline-flex items-center justify-center p-3 bg-red-100 dark:bg-red-900/30 rounded-full">
+                        <span class="material-icons text-4xl text-gov-red">"cloud_sync"</span>
+                    </div>
+                    
+                    <h1 class="text-4xl md:text-6xl font-extrabold tracking-tight mb-6 text-neutral-900 dark:text-white">
+                        "Secure File Sharing for " <br class="hidden md:block"/>
+                        <span class="text-gov-red">"Government and Citizens"</span>
+                    </h1>
+                    
+                    <p class="text-lg md:text-xl text-neutral-600 dark:text-neutral-400 mb-10 max-w-2xl mx-auto leading-relaxed">
+                        "Welcome to FlagDrive, the official federal cloud platform. Store, share, and collaborate on documents securely across all public sector departments and with citizens."
+                    </p>
+                    
+                    <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+                        <button 
+                            class="w-full sm:w-auto px-8 py-3.5 rounded-lg font-bold text-lg bg-gov-red text-white hover:bg-gov-red-dark shadow-md hover:shadow-lg transition-all"
+                            on:click=move |_| set_page.set(Page::Register)
+                        >
+                            "Create Citizen Account"
+                        </button>
+                        <button 
+                            class="w-full sm:w-auto px-8 py-3.5 rounded-lg font-bold text-lg bg-white dark:bg-gov-surface-dark text-neutral-900 dark:text-white border border-neutral-300 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-700 shadow-sm transition-all"
+                            on:click=move |_| set_page.set(Page::Dashboard)
+                        >
+                            "Access Dashboard"
+                        </button>
+                    </div>
                 </div>
-                
-                <h1 class="text-5xl md:text-7xl lg:text-8xl font-extrabold tracking-tighter mb-8 bg-clip-text text-transparent bg-gradient-to-b from-white via-gray-200 to-gray-500 drop-shadow-sm">
-                    "FLAG"<span class="bg-clip-text text-transparent bg-gradient-to-r from-[#00f0ff] to-[#ff00ff]">"DRIVE"</span>
-                </h1>
-                
-                <p class="text-xl md:text-2xl text-gray-400 mb-12 max-w-2xl mx-auto font-light leading-relaxed">
-                    "GovNet's premier classified file distribution system. End-to-end compartmentalization, absolute control."
-                </p>
-                
-                <div class="flex flex-col sm:flex-row items-center justify-center gap-6">
-                    <button 
-                        class="w-full sm:w-auto px-8 py-4 rounded-lg font-bold text-lg bg-gradient-to-r from-[#00f0ff] to-[#ff00ff] text-black hover:shadow-[0_0_30px_rgba(0,240,255,0.4)] transition-all hover:-translate-y-1"
-                        on:click=move |_| set_page.set(Page::Register)
-                    >
-                        "Initialize Access"
-                    </button>
-                    <button 
-                        class="w-full sm:w-auto px-8 py-4 rounded-lg font-bold text-lg border-2 border-gray-700 hover:border-[#ff00ff] hover:text-[#ff00ff] hover:bg-[#ff00ff]/10 transition-all"
-                        on:click=move |_| set_page.set(Page::Login)
-                    >
-                        "Authenticate"
-                    </button>
+
+                // Features section
+                <div class="mt-24 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto w-full px-4">
+                    <div class="bg-white dark:bg-gov-surface-dark p-6 rounded-xl shadow-sm border border-neutral-200 dark:border-neutral-700">
+                        <span class="material-icons text-gov-red mb-4 text-3xl">"security"</span>
+                        <h3 class="text-xl font-bold text-neutral-900 dark:text-white mb-2">"End-to-End Encryption"</h3>
+                        <p class="text-neutral-600 dark:text-neutral-400">"All files are encrypted at rest and in transit, complying with strict federal data protection regulations."</p>
+                    </div>
+                    <div class="bg-white dark:bg-gov-surface-dark p-6 rounded-xl shadow-sm border border-neutral-200 dark:border-neutral-700">
+                        <span class="material-icons text-gov-red mb-4 text-3xl">"folder_shared"</span>
+                        <h3 class="text-xl font-bold text-neutral-900 dark:text-white mb-2">"Seamless Sharing"</h3>
+                        <p class="text-neutral-600 dark:text-neutral-400">"Share documents securely with specific departments, public citizens, or restrict access completely."</p>
+                    </div>
+                    <div class="bg-white dark:bg-gov-surface-dark p-6 rounded-xl shadow-sm border border-neutral-200 dark:border-neutral-700">
+                        <span class="material-icons text-gov-red mb-4 text-3xl">"devices"</span>
+                        <h3 class="text-xl font-bold text-neutral-900 dark:text-white mb-2">"Cross-Platform"</h3>
+                        <p class="text-neutral-600 dark:text-neutral-400">"Access your documents from any authorized device, anywhere in the union."</p>
+                    </div>
                 </div>
             </div>
         </div>
