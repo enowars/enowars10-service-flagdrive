@@ -1,22 +1,20 @@
-use leptos::prelude::*;
-use crate::app::Page;
 use crate::components::navbar::Navbar;
+use leptos::prelude::*;
 
 #[component]
 pub fn Landing() -> impl IntoView {
-
     view! {
         <div class="flex flex-col min-h-screen">
             <Navbar />
-            
+
             <div class="flex-1 flex flex-col items-center justify-center relative px-4 py-16 sm:px-6 lg:px-8">
-                
+
                 <div class="relative z-10 text-center max-w-4xl mx-auto">
                     <h1 class="text-4xl md:text-6xl font-extrabold tracking-tight mb-6 text-neutral-900 dark:text-white">
                         "Secure File Sharing for " <br class="hidden md:block"/>
                         <span class="text-gov-red">"Government and Citizens"</span>
                     </h1>
-                    
+
                     <p class="text-lg md:text-xl text-neutral-600 dark:text-neutral-400 mb-10 max-w-2xl mx-auto leading-relaxed">
                         "Welcome to FlagDrive, the official federal cloud platform. Store, share, and collaborate on documents securely across all public sector departments and with citizens."
                     </p>
