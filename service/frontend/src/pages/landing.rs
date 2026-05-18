@@ -4,7 +4,6 @@ use crate::components::navbar::Navbar;
 
 #[component]
 pub fn Landing() -> impl IntoView {
-    let set_page = expect_context::<WriteSignal<Page>>();
 
     view! {
         <div class="flex flex-col min-h-screen">
@@ -13,10 +12,6 @@ pub fn Landing() -> impl IntoView {
             <div class="flex-1 flex flex-col items-center justify-center relative px-4 py-16 sm:px-6 lg:px-8">
                 
                 <div class="relative z-10 text-center max-w-4xl mx-auto">
-                    <div class="mb-8 inline-flex items-center justify-center p-3 bg-red-100 dark:bg-red-900/30 rounded-full">
-                        <span class="material-icons text-4xl text-gov-red">"cloud_sync"</span>
-                    </div>
-                    
                     <h1 class="text-4xl md:text-6xl font-extrabold tracking-tight mb-6 text-neutral-900 dark:text-white">
                         "Secure File Sharing for " <br class="hidden md:block"/>
                         <span class="text-gov-red">"Government and Citizens"</span>
@@ -25,21 +20,6 @@ pub fn Landing() -> impl IntoView {
                     <p class="text-lg md:text-xl text-neutral-600 dark:text-neutral-400 mb-10 max-w-2xl mx-auto leading-relaxed">
                         "Welcome to FlagDrive, the official federal cloud platform. Store, share, and collaborate on documents securely across all public sector departments and with citizens."
                     </p>
-                    
-                    <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
-                        <button 
-                            class="w-full sm:w-auto px-8 py-3.5 rounded-lg font-bold text-lg bg-gov-red text-white hover:bg-gov-red-dark shadow-md hover:shadow-lg transition-all"
-                            on:click=move |_| set_page.set(Page::Register)
-                        >
-                            "Create Citizen Account"
-                        </button>
-                        <button 
-                            class="w-full sm:w-auto px-8 py-3.5 rounded-lg font-bold text-lg bg-white dark:bg-gov-surface-dark text-neutral-900 dark:text-white border border-neutral-300 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-700 shadow-sm transition-all"
-                            on:click=move |_| set_page.set(Page::Dashboard)
-                        >
-                            "Access Dashboard"
-                        </button>
-                    </div>
                 </div>
 
                 // Features section

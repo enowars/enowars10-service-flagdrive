@@ -53,6 +53,13 @@ pub fn Dashboard() -> impl IntoView {
             visibility: FileVisibility::Following,
             size: 536870912,
         },
+        File {
+            id: "4".to_string(),
+            name: "Press_Release_Draft.docx".to_string(),
+            owner: "media_office".to_string(),
+            visibility: FileVisibility::Followers,
+            size: 45000,
+        },
     ];
 
     view! {
@@ -65,7 +72,7 @@ pub fn Dashboard() -> impl IntoView {
                     <div>
                         <h1 class="text-3xl font-bold text-neutral-900 dark:text-white tracking-tight flex items-center">
                             <span class="material-icons mr-2 text-gov-red text-3xl">"folder"</span>
-                            "Federal Documents"
+                            "Documents"
                         </h1>
                         <p class="text-neutral-600 dark:text-neutral-400 mt-1">"Access, manage, and securely upload your documents."</p>
                     </div>

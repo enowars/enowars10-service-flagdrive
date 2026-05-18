@@ -6,8 +6,8 @@ pub fn FileCard(file: File) -> impl IntoView {
     let visibility_class = match file.visibility {
         FileVisibility::Private => "text-neutral-600 dark:text-neutral-400 bg-neutral-100 dark:bg-gov-surface-dark border-neutral-200 dark:border-neutral-700",
         FileVisibility::Public => "text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/30 border-green-200 dark:border-green-800/50",
-        FileVisibility::Following => "text-orange-700 dark:text-orange-400 bg-orange-100 dark:bg-orange-900/30 border-orange-200 dark:border-orange-800/50",
-        FileVisibility::Followers => "text-teal-700 dark:text-teal-400 bg-teal-100 dark:bg-teal-900/30 border-teal-200 dark:border-teal-800/50",
+        FileVisibility::Following => "text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 border-amber-200 dark:border-amber-800/50",
+        FileVisibility::Followers => "text-sky-700 dark:text-sky-400 bg-sky-100 dark:bg-sky-900/30 border-sky-200 dark:border-sky-800/50",
     };
 
     let visibility_label = match file.visibility {
