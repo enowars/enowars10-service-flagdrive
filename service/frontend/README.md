@@ -1,6 +1,6 @@
 # FlagDrive Frontend
 
-FlagDrive is the frontend single-page application (SPA) for the "Hack the Government" Attack/Defense CTF service. It is built using [Leptos](https://leptos.dev/) (a Rust web framework) and styled with [Tailwind CSS v4](https://tailwindcss.com/).
+FlagDrive is the frontend single-page application (SPA) for the ENOWARS10 "Hack the Government" Attack/Defense CTF. It is built using [Leptos](https://leptos.dev/) (a Rust web framework) and styled with [Tailwind CSS v4](https://tailwindcss.com/).
 
 ## Prerequisites
 
