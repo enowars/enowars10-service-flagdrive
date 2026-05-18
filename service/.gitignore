@@ -1,3 +1,4 @@
 target/**
-service/frontend/dist/**
-service/frontend/node_modules/**
+frontend/dist/**
+frontend/node_modules/**
+frontend/style/**
