@@ -16,13 +16,30 @@ pub enum Page {
 
 #[component]
 pub fn App() -> impl IntoView {
-    let (page, set_page) = signal(Page::Landing);
+    // Initialize token from localStorage if available
+    let initial_token = window().local_storage().ok().flatten().and_then(|ls| ls.get_item("flagdrive_auth_token").ok().flatten());
+    
+    // If we have a token, start on the Dashboard
+    let initial_page = if initial_token.is_some() { Page::Dashboard } else { Page::Landing };
+    
+    let (page, set_page) = signal(initial_page);
     provide_context(set_page);
     provide_context(page);
 
     // Global Auth State
-    let auth_token = RwSignal::new(None::<String>);
+    let auth_token = RwSignal::new(initial_token);
     provide_context(auth_token);
+
+    // Effect to keep localStorage in sync
+    Effect::new(move |_| {
+        if let Some(ls) = window().local_storage().ok().flatten() {
+            if let Some(token) = auth_token.get() {
+                let _ = ls.set_item("flagdrive_auth_token", &token);
+            } else {
+                let _ = ls.remove_item("flagdrive_auth_token");
+            }
+        }
+    });
 
     // Setup dark mode using leptos_use
     let UseColorModeReturn { mode, set_mode, .. } = use_color_mode_with_options(
