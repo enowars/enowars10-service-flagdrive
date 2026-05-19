@@ -1,9 +1,54 @@
 use leptos::prelude::*;
 use crate::app::Page;
+use leptos::serde_json::json;
 
 #[component]
 pub fn Register() -> impl IntoView {
     let set_page = expect_context::<WriteSignal<Page>>();
+    let auth_token = expect_context::<RwSignal<Option<String>>>();
+
+    let (username, set_username) = signal(String::new());
+    let (password, set_password) = signal(String::new());
+    let (error_msg, set_error_msg) = signal(Option::<String>::None);
+
+    let on_submit = move |ev: leptos::ev::SubmitEvent| {
+        ev.prevent_default();
+        let username = username.get();
+        let password = password.get();
+        
+        leptos::task::spawn_local(async move {
+            let client = reqwest::Client::new();
+            let res = client.post("http://127.0.0.1:4859/api/auth/register")
+                .json(&json!({
+                    "username": username,
+                    "password": password
+                }))
+                .send()
+                .await;
+                
+            match res {
+                Ok(resp) => {
+                    if resp.status().is_success() {
+                        if let Ok(json) = resp.json::<leptos::serde_json::Value>().await {
+                            if let Some(token) = json.get("token").and_then(|t| t.as_str()) {
+                                auth_token.set(Some(token.to_string()));
+                                set_page.set(Page::Dashboard);
+                            } else {
+                                set_error_msg.set(Some("Invalid response format".to_string()));
+                            }
+                        } else {
+                            set_error_msg.set(Some("Failed to parse response".to_string()));
+                        }
+                    } else {
+                        set_error_msg.set(Some("Registration failed".to_string()));
+                    }
+                },
+                Err(e) => {
+                    set_error_msg.set(Some(e.to_string()));
+                }
+            }
+        });
+    };
 
     view! {
         <div class="flex-1 flex items-center justify-center min-h-screen p-4 bg-gov-bg-light dark:bg-gov-bg-dark">
@@ -13,10 +58,7 @@ pub fn Register() -> impl IntoView {
                     <p class="text-neutral-500 dark:text-neutral-400">"Create your official FlagDrive account."</p>
                 </div>
                 
-                <form class="space-y-6" on:submit=move |ev| {
-                    ev.prevent_default();
-                    set_page.set(Page::Login);
-                }>
+                <form class="space-y-6" on:submit=on_submit>
                     <div>
                         <label class="block text-sm font-bold text-neutral-700 dark:text-neutral-300 mb-2">"Username"</label>
                         <input 
@@ -24,6 +66,7 @@ pub fn Register() -> impl IntoView {
                             class="w-full px-4 py-3 bg-neutral-50 dark:bg-gov-bg-dark border border-neutral-300 dark:border-neutral-600 rounded-lg focus:outline-none focus:border-gov-red focus:ring-1 focus:ring-gov-red text-neutral-900 dark:text-white transition-all"
                             placeholder="username"
                             required
+                            on:input=move |ev| set_username.set(event_target_value(&ev))
                         />
                     </div>
                     
@@ -34,8 +77,13 @@ pub fn Register() -> impl IntoView {
                             class="w-full px-4 py-3 bg-neutral-50 dark:bg-gov-bg-dark border border-neutral-300 dark:border-neutral-600 rounded-lg focus:outline-none focus:border-gov-red focus:ring-1 focus:ring-gov-red text-neutral-900 dark:text-white transition-all"
                             placeholder="••••••••"
                             required
+                            on:input=move |ev| set_password.set(event_target_value(&ev))
                         />
                     </div>
+
+                    {move || error_msg.get().map(|msg| view! {
+                        <div class="text-red-500 text-sm font-bold">{msg}</div>
+                    })}
                     
                     <button 
                         type="submit"

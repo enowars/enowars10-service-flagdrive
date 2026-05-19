@@ -1,6 +1,6 @@
 use crate::components::file_card::FileCard;
 use crate::components::navbar::Navbar;
-use crate::models::{File, FileVisibility};
+use shared::{File, FileVisibility};
 use leptos::prelude::*;
 
 #[component]
@@ -31,36 +31,11 @@ pub fn Dashboard() -> impl IntoView {
         set_show_modal.set(false);
     };
 
-    let files = vec![
-        File {
-            id: "1".to_string(),
-            name: "Tax_Returns_2025.pdf".to_string(),
-            owner: "citizen_492".to_string(),
-            visibility: FileVisibility::Private,
-            size: 1048576,
-        },
-        File {
-            id: "2".to_string(),
-            name: "Public_Health_Guidelines.txt".to_string(),
-            owner: "dept_of_health".to_string(),
-            visibility: FileVisibility::Public,
-            size: 2048,
-        },
-        File {
-            id: "3".to_string(),
-            name: "Internal_Audit_Q3.zip".to_string(),
-            owner: "inspector_general".to_string(),
-            visibility: FileVisibility::Following,
-            size: 536870912,
-        },
-        File {
-            id: "4".to_string(),
-            name: "Press_Release_Draft.docx".to_string(),
-            owner: "media_office".to_string(),
-            visibility: FileVisibility::Followers,
-            size: 45000,
-        },
-    ];
+    let files_resource = LocalResource::new(|| async move {
+        let client = reqwest::Client::new();
+        let res = client.get("http://127.0.0.1:4859/api/files").send().await.ok()?;
+        res.json::<Vec<File>>().await.ok()
+    });
 
     view! {
         <div class="flex flex-col min-h-screen">
@@ -86,9 +61,17 @@ pub fn Dashboard() -> impl IntoView {
                     </button>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {files.into_iter().map(|f| view! { <FileCard file=f /> }).collect_view()}
-                </div>
+                <Suspense fallback=move || view! { <div class="text-center p-8">"Loading..."</div> }>
+                    {move || match files_resource.get() {
+                        None => view! { <div></div> }.into_any(),
+                        Some(None) => view! { <div class="text-center p-8 text-red-500">"Failed to load files"</div> }.into_any(),
+                        Some(Some(files)) => view! {
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {files.into_iter().map(|f| view! { <FileCard file=f /> }).collect_view()}
+                            </div>
+                        }.into_any()
+                    }}
+                </Suspense>
             </main>
 
             // Upload Modal

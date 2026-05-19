@@ -1,9 +1,10 @@
-// backend/src/main.rs
 use axum::{
-    routing::{get, post},
     Json, Router,
+    extract::Path,
+    routing::{get, post},
 };
-use serde_json::Value;
+use serde_json::{Value, json};
+use shared::{File, FileVisibility, User};
 use tower_http::cors::CorsLayer;
 
 #[tokio::main]
@@ -12,7 +13,8 @@ async fn main() {
     let app = Router::new()
         .route("/api/auth/register", post(register_handler))
         .route("/api/auth/login", post(login_handler))
-        .route("/api/dashboard", get(dashboard_handler))
+        .route("/api/files", get(files_handler))
+        .route("/api/user/{username}", get(user_handler))
         // TODO: remove CORS later
         .layer(CorsLayer::permissive());
 
@@ -21,44 +23,86 @@ async fn main() {
     axum::serve(listener, app).await.unwrap();
 }
 
-async fn register_handler() -> Json<Value> {
+async fn register_handler(Json(payload): Json<Value>) -> Json<Value> {
     // TODO: Hash password, save to DB
-    let raw_json_stub = r#"{
+    let _username = payload
+        .get("username")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
+    let _password = payload
+        .get("password")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
+
+    Json(json!({
         "token": "secure-token-123",
         "user": {
-            "username": "NewUser_From_Backend"
+            "username": _username
         }
-    }"#;
-
-    let response = serde_json::from_str(raw_json_stub)
-        .expect("Backend failed to parse register stub");
-
-    Json(response)
+    }))
 }
 
-async fn login_handler() -> Json<Value> {
+async fn login_handler(Json(payload): Json<Value>) -> Json<Value> {
     // TODO: Verify password against DB
-    let raw_json_stub = r#"{
+    let _username = payload
+        .get("username")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
+    let _password = payload
+        .get("password")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
+
+    Json(json!({
         "token": "secure-token-123",
         "user": {
-            "username": "NewUser_From_Backend"
+            "username": _username
         }
-    }"#;
-
-    let response = serde_json::from_str(raw_json_stub)
-        .expect("Backend failed to parse register stub");
-
-    Json(response)
+    }))
 }
 
-async fn dashboard_handler() -> Json<Value> {
-    // TODO: Extract Token from Auth header and fetch user
-    let raw_json_stub = r#"{
-        "content": "stub data"
-    }"#;
+async fn files_handler() -> Json<Vec<File>> {
+    let files = vec![
+        File {
+            id: "1".to_string(),
+            name: "Tax_Returns_2025.pdf".to_string(),
+            owner: "citizen_492".to_string(),
+            visibility: FileVisibility::Private,
+            size: 1048576,
+        },
+        File {
+            id: "2".to_string(),
+            name: "Public_Health_Guidelines.txt".to_string(),
+            owner: "dept_of_health".to_string(),
+            visibility: FileVisibility::Public,
+            size: 2048,
+        },
+        File {
+            id: "3".to_string(),
+            name: "Internal_Audit_Q3.zip".to_string(),
+            owner: "inspector_general".to_string(),
+            visibility: FileVisibility::Following,
+            size: 536870912,
+        },
+        File {
+            id: "4".to_string(),
+            name: "Press_Release_Draft.docx".to_string(),
+            owner: "media_office".to_string(),
+            visibility: FileVisibility::Followers,
+            size: 45000,
+        },
+    ];
 
-    let response = serde_json::from_str(raw_json_stub)
-        .expect("Backend failed to parse register stub");
+    Json(files)
+}
 
-    Json(response)
+async fn user_handler(Path(username): Path<String>) -> Json<User> {
+    let user = User {
+        username,
+        followers_count: 15,
+        following_count: 8,
+        is_followed: false,
+    };
+
+    Json(user)
 }

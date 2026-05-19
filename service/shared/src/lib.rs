@@ -1,4 +1,6 @@
-#[derive(Debug, Clone, PartialEq)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum FileVisibility {
     Private,
     Public,
@@ -6,7 +8,7 @@ pub enum FileVisibility {
     Followers,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct File {
     pub id: String,
     pub name: String,
@@ -15,7 +17,7 @@ pub struct File {
     pub size: usize,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct User {
     pub username: String,
     pub followers_count: usize,

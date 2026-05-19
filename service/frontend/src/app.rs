@@ -16,10 +16,13 @@ pub enum Page {
 
 #[component]
 pub fn App() -> impl IntoView {
-    // Set up the global router state
     let (page, set_page) = signal(Page::Landing);
     provide_context(set_page);
     provide_context(page);
+
+    // Global Auth State
+    let auth_token = RwSignal::new(None::<String>);
+    provide_context(auth_token);
 
     // Setup dark mode using leptos_use
     let UseColorModeReturn { mode, set_mode, .. } = use_color_mode_with_options(

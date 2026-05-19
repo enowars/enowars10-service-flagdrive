@@ -1,5 +1,5 @@
 use leptos::prelude::*;
-use crate::models::{File, FileVisibility};
+use shared::{File, FileVisibility};
 
 #[component]
 pub fn FileCard(file: File) -> impl IntoView {
