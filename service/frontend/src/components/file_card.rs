@@ -42,9 +42,8 @@ pub fn FileCard(file: File) -> impl IntoView {
             
             <div class="flex justify-between items-end mt-6 border-t border-neutral-100 dark:border-neutral-700 pt-4">
                 <span class="text-xs font-medium text-neutral-500 dark:text-neutral-400">{format!("{} bytes", file.size)}</span>
-                <button class="px-4 py-2 text-sm font-bold text-gov-red bg-red-50 dark:bg-red-900/20 rounded hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors border border-red-100 dark:border-red-900/50 flex items-center">
-                    <span class="material-icons mr-1 text-[18px]">"download"</span>
-                    "Download"
+                <button class="p-2 text-sm font-bold text-gov-red bg-red-50 dark:bg-red-900/20 rounded hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors border border-red-100 dark:border-red-900/50 flex items-center justify-center">
+                    <span class="material-icons text-[20px]">"download"</span>
                 </button>
             </div>
         </div>
