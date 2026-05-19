@@ -40,8 +40,8 @@ pub fn Navbar() -> impl IntoView {
                                 <button 
                                     class="px-4 py-2 rounded-md text-sm font-medium text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all"
                                     on:click=move |_| {
-                                        if let Some(auth_token) = use_context::<RwSignal<Option<String>>>() {
-                                            auth_token.set(None);
+                                        if let Some(set_auth_token) = use_context::<WriteSignal<Option<String>>>() {
+                                            set_auth_token.set(None);
                                         }
                                         set_page.set(Page::Landing);
                                     }

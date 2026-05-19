@@ -5,7 +5,7 @@ use leptos::serde_json::json;
 #[component]
 pub fn Register() -> impl IntoView {
     let set_page = expect_context::<WriteSignal<Page>>();
-    let auth_token = expect_context::<RwSignal<Option<String>>>();
+    let set_auth_token = expect_context::<WriteSignal<Option<String>>>();
 
     let (username, set_username) = signal(String::new());
     let (password, set_password) = signal(String::new());
@@ -31,7 +31,7 @@ pub fn Register() -> impl IntoView {
                     if resp.status().is_success() {
                         if let Ok(json) = resp.json::<leptos::serde_json::Value>().await {
                             if let Some(token) = json.get("token").and_then(|t| t.as_str()) {
-                                auth_token.set(Some(token.to_string()));
+                                set_auth_token.set(Some(token.to_string()));
                                 set_page.set(Page::Dashboard);
                             } else {
                                 set_error_msg.set(Some("Invalid response format".to_string()));

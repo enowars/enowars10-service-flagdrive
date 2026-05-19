@@ -632,6 +632,7 @@ dependencies = [
 name = "flagdrive-frontend"
 version = "0.1.0"
 dependencies = [
+ "codee",
  "leptos",
  "leptos-use",
  "reqwest",

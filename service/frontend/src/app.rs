@@ -1,4 +1,6 @@
+use codee::string::JsonSerdeCodec;
 use leptos::prelude::*;
+use leptos_use::storage::use_local_storage;
 use leptos_use::{ColorMode, UseColorModeOptions, UseColorModeReturn, use_color_mode_with_options};
 
 use crate::pages::{
@@ -11,35 +13,28 @@ pub enum Page {
     Login,
     Register,
     Dashboard,
-    Profile(String), // username
+    Profile(String),
 }
 
 #[component]
 pub fn App() -> impl IntoView {
-    // Initialize token from localStorage if available
-    let initial_token = window().local_storage().ok().flatten().and_then(|ls| ls.get_item("flagdrive_auth_token").ok().flatten());
-    
+    let (auth_token, set_auth_token, _) =
+        use_local_storage::<Option<String>, JsonSerdeCodec>("flagdrive_auth_token");
+
     // If we have a token, start on the Dashboard
-    let initial_page = if initial_token.is_some() { Page::Dashboard } else { Page::Landing };
-    
+    let initial_page = if auth_token.get_untracked().is_some() {
+        Page::Dashboard
+    } else {
+        Page::Landing
+    };
+
     let (page, set_page) = signal(initial_page);
     provide_context(set_page);
     provide_context(page);
 
     // Global Auth State
-    let auth_token = RwSignal::new(initial_token);
     provide_context(auth_token);
-
-    // Effect to keep localStorage in sync
-    Effect::new(move |_| {
-        if let Some(ls) = window().local_storage().ok().flatten() {
-            if let Some(token) = auth_token.get() {
-                let _ = ls.set_item("flagdrive_auth_token", &token);
-            } else {
-                let _ = ls.remove_item("flagdrive_auth_token");
-            }
-        }
-    });
+    provide_context(set_auth_token);
 
     // Setup dark mode using leptos_use
     let UseColorModeReturn { mode, set_mode, .. } = use_color_mode_with_options(
