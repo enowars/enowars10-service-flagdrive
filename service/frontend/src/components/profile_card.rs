@@ -7,6 +7,7 @@ pub fn ProfileCard(
     user: FlagDriveUser,
     is_me: bool,
     gdpr_action: Action<(), Result<(), String>>,
+    follow_action: Action<bool, Result<(), String>>,
     modal_state: RwSignal<ProfileModal>,
 ) -> impl IntoView {
     let followers_count = user.followers_count;
@@ -39,11 +40,30 @@ pub fn ProfileCard(
                             </button>
                         }.into_any()
                     } else {
+                        let is_followed = user.is_followed;
+                        let follow_action_clone = follow_action.clone();
                         view! {
-                            <button class="flex items-center px-6 py-2 rounded-lg font-bold text-sm bg-gov-red text-white hover:bg-gov-red-dark shadow-sm transition-all">
-                                <span class="material-icons text-[18px] mr-1">"person_add"</span>
-                                "Add to Network"
-                            </button>
+                            {if is_followed {
+                                view! {
+                                    <button 
+                                        class="flex items-center px-6 py-2 rounded-lg font-bold text-sm bg-neutral-200 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-300 dark:hover:bg-neutral-700 shadow-sm transition-all"
+                                        on:click=move |_| { follow_action_clone.dispatch(true); }
+                                    >
+                                        <span class="material-icons text-[18px] mr-1">"person_remove"</span>
+                                        "Unfollow"
+                                    </button>
+                                }.into_any()
+                            } else {
+                                view! {
+                                    <button 
+                                        class="flex items-center px-6 py-2 rounded-lg font-bold text-sm bg-gov-red text-white hover:bg-gov-red-dark shadow-sm transition-all"
+                                        on:click=move |_| { follow_action_clone.dispatch(false); }
+                                    >
+                                        <span class="material-icons text-[18px] mr-1">"person_add"</span>
+                                        "Follow"
+                                    </button>
+                                }.into_any()
+                            }}
                         }.into_any()
                     }}
                 </div>

@@ -30,10 +30,27 @@ pub fn Profile(username: String) -> impl IntoView {
         let display_name = display_name.clone();
         move || {
             let name = display_name.clone();
+            let logged_in_user = state.username.get();
             async move {
                 let client = reqwest::Client::new();
                 let res = client.get(&format!("http://127.0.0.1:4859/api/user/{}", name)).send().await.ok()?;
-                res.json::<FlagDriveUser>().await.ok()
+                let mut user = res.json::<FlagDriveUser>().await.ok()?;
+                
+                if let Some(me) = logged_in_user {
+                    if me.to_lowercase() == name.to_lowercase() {
+                        user.is_followed = false;
+                    } else if let Ok(resp) = client.get(&format!("http://127.0.0.1:4859/api/user/{}/following", me)).send().await {
+                        if let Ok(json) = resp.json::<serde_json::Value>().await {
+                            if let Some(following) = json.get("following").and_then(|f| f.as_array()) {
+                                let is_following = following.iter().any(|val| {
+                                    val.as_str().map(|s| s.to_lowercase() == name.to_lowercase()).unwrap_or(false)
+                                });
+                                user.is_followed = is_following;
+                            }
+                        }
+                    }
+                }
+                Some(user)
             }
         }
     });
@@ -71,6 +88,38 @@ pub fn Profile(username: String) -> impl IntoView {
                 }
             }
             Err("Failed to request GDPR data".to_string())
+        }
+    });
+
+    let follow_action = Action::new_local({
+        let display_name = display_name.clone();
+        move |is_following: &bool| {
+            let is_following = *is_following;
+            let display_name = display_name.clone();
+            let token = state.auth_token.get_untracked().unwrap_or_default();
+            let current_username = state.username.get_untracked().unwrap_or_default();
+            async move {
+                let action_endpoint = if is_following { "unfollow" } else { "follow" };
+                let client = reqwest::Client::new();
+                let res = client.post(&format!("http://127.0.0.1:4859/api/user/{}/{}", current_username, action_endpoint))
+                    .json(&serde_json::json!({
+                        "username": display_name,
+                        "token": token
+                    }))
+                    .send()
+                    .await;
+                
+                match res {
+                    Ok(resp) if resp.status().is_success() => Ok(()),
+                    _ => Err("Failed to update follow relationship".to_string()),
+                }
+            }
+        }
+    });
+
+    Effect::new(move |_| {
+        if let Some(Ok(())) = follow_action.value().get() {
+            user_resource.refetch();
         }
     });
 
@@ -136,6 +185,7 @@ pub fn Profile(username: String) -> impl IntoView {
                                         user=user 
                                         is_me=is_me 
                                         gdpr_action=gdpr_action 
+                                        follow_action=follow_action
                                         modal_state=modal_state 
                                     />
                                 }.into_any()
@@ -176,7 +226,6 @@ pub fn Profile(username: String) -> impl IntoView {
                                                     view! {
                                                         <ul class="space-y-3">
                                                             {users.into_iter().map(|u| {
-                                                                let is_self = Some(u.clone()) == state.username.get();
                                                                 let state_clone = state.clone();
                                                                 let u_clone = u.clone();
                                                                 let on_nav = move |_nav_u| {
@@ -184,7 +233,7 @@ pub fn Profile(username: String) -> impl IntoView {
                                                                     state_clone.page.set(Page::Profile(u_clone.clone()));
                                                                 };
                                                                 view! {
-                                                                    <UserListItem user=u is_self=is_self on_navigate=on_nav />
+                                                                    <UserListItem user=u on_navigate=on_nav />
                                                                 }
                                                             }).collect_view()}
                                                         </ul>

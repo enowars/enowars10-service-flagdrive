@@ -1,16 +1,26 @@
 use leptos::prelude::*;
+use crate::app::AppState;
 
 #[component]
 pub fn UserListItem<F>(
     user: String,
-    is_self: bool,
     on_navigate: F,
 ) -> impl IntoView 
 where
     F: Fn(String) + 'static + Send + Sync + Clone,
 {
+    let state = expect_context::<AppState>();
     let u_clone = user.clone();
     let on_nav_clone = on_navigate.clone();
+
+    let is_self = Memo::new({
+        let user = user.clone();
+        move |_| {
+            let current = state.username.get();
+            current.map(|name| name.to_lowercase() == user.to_lowercase()).unwrap_or(false)
+        }
+    });
+
     view! {
         <li class="flex items-center justify-between p-3 rounded-lg bg-neutral-50 dark:bg-gov-bg-dark border border-neutral-100 dark:border-neutral-800 hover:border-gov-red/30 transition-colors">
             <div class="flex items-center gap-3 cursor-pointer" on:click=move |_| on_nav_clone(u_clone.clone())>
@@ -19,7 +29,7 @@ where
                 </div>
                 <span class="font-medium text-neutral-900 dark:text-white">{user.clone()}</span>
             </div>
-            {if !is_self {
+            {move || if !is_self.get() {
                 view! {
                     <button class="px-3 py-1.5 text-xs font-semibold rounded-md bg-neutral-200 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-300 dark:hover:bg-neutral-700 transition-colors">
                         "Follow"
