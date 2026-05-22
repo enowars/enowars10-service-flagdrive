@@ -1,5 +1,5 @@
 use crate::components::navbar::Navbar;
-use shared::User;
+use shared::FlagDriveUser;
 use leptos::prelude::*;
 
 #[component]
@@ -17,7 +17,7 @@ pub fn Profile(username: String) -> impl IntoView {
         async move {
             let client = reqwest::Client::new();
             let res = client.get(&format!("http://127.0.0.1:4859/api/user/{}", name)).send().await.ok()?;
-            res.json::<User>().await.ok()
+            res.json::<FlagDriveUser>().await.ok()
         }
     });
 

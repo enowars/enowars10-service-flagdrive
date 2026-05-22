@@ -22,7 +22,7 @@ pub async fn connect_to_db(database_url: &str) -> SqlitePool {
     pool
 }
 
-pub async fn delete_old_data(
+pub async fn _delete_old_data(
     pool: &SqlitePool,
     age_limit_seconds: u64,
 ) -> Result<u64, sqlx::Error> {

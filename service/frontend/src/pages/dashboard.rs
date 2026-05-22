@@ -1,13 +1,13 @@
 use crate::components::file_card::FileCard;
 use crate::components::navbar::Navbar;
-use shared::{File, FileVisibility};
+use shared::{FlagDriveFile, FlagDriveFileVisibility};
 use leptos::prelude::*;
 
 #[component]
 pub fn Dashboard() -> impl IntoView {
     let (is_dragging, set_is_dragging) = signal(false);
     let (show_modal, set_show_modal) = signal(false);
-    let (_visibility, set_visibility) = signal(FileVisibility::Private);
+    let (_visibility, set_visibility) = signal(FlagDriveFileVisibility::Private);
 
     let on_drag_enter = move |ev: leptos::ev::DragEvent| {
         ev.prevent_default();
@@ -33,8 +33,8 @@ pub fn Dashboard() -> impl IntoView {
 
     let files_resource = LocalResource::new(|| async move {
         let client = reqwest::Client::new();
-        let res = client.get("http://127.0.0.1:4859/api/files").send().await.ok()?;
-        res.json::<Vec<File>>().await.ok()
+        let res = client.get("http://127.0.0.1:4859/api/files/citizen_492").send().await.ok()?;
+        res.json::<Vec<FlagDriveFile>>().await.ok()
     });
 
     view! {
@@ -99,10 +99,10 @@ pub fn Dashboard() -> impl IntoView {
                                     on:change=move |ev| {
                                         let val = event_target_value(&ev);
                                         let vis = match val.as_str() {
-                                            "Public" => FileVisibility::Public,
-                                            "Following" => FileVisibility::Following,
-                                            "Followers" => FileVisibility::Followers,
-                                            _ => FileVisibility::Private,
+                                            "Public" => FlagDriveFileVisibility::Public,
+                                            "Following" => FlagDriveFileVisibility::Following,
+                                            "Followers" => FlagDriveFileVisibility::Followers,
+                                            _ => FlagDriveFileVisibility::Private,
                                         };
                                         set_visibility.set(vis);
                                     }

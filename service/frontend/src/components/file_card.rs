@@ -1,27 +1,27 @@
 use leptos::prelude::*;
-use shared::{File, FileVisibility};
+use shared::{FlagDriveFile, FlagDriveFileVisibility};
 
 #[component]
-pub fn FileCard(file: File) -> impl IntoView {
+pub fn FileCard(file: FlagDriveFile) -> impl IntoView {
     let visibility_class = match file.visibility {
-        FileVisibility::Private => "text-neutral-600 dark:text-neutral-400 bg-neutral-100 dark:bg-gov-surface-dark border-neutral-200 dark:border-neutral-700",
-        FileVisibility::Public => "text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/30 border-green-200 dark:border-green-800/50",
-        FileVisibility::Following => "text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 border-amber-200 dark:border-amber-800/50",
-        FileVisibility::Followers => "text-sky-700 dark:text-sky-400 bg-sky-100 dark:bg-sky-900/30 border-sky-200 dark:border-sky-800/50",
+        FlagDriveFileVisibility::Private => "text-neutral-600 dark:text-neutral-400 bg-neutral-100 dark:bg-gov-surface-dark border-neutral-200 dark:border-neutral-700",
+        FlagDriveFileVisibility::Public => "text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/30 border-green-200 dark:border-green-800/50",
+        FlagDriveFileVisibility::Following => "text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 border-amber-200 dark:border-amber-800/50",
+        FlagDriveFileVisibility::Followers => "text-sky-700 dark:text-sky-400 bg-sky-100 dark:bg-sky-900/30 border-sky-200 dark:border-sky-800/50",
     };
 
     let visibility_label = match file.visibility {
-        FileVisibility::Private => "Private",
-        FileVisibility::Public => "Public",
-        FileVisibility::Following => "Following",
-        FileVisibility::Followers => "Followers",
+        FlagDriveFileVisibility::Private => "Private",
+        FlagDriveFileVisibility::Public => "Public",
+        FlagDriveFileVisibility::Following => "Following",
+        FlagDriveFileVisibility::Followers => "Followers",
     };
 
     let icon = match file.visibility {
-        FileVisibility::Private => "lock",
-        FileVisibility::Public => "public",
-        FileVisibility::Following => "person_add",
-        FileVisibility::Followers => "groups",
+        FlagDriveFileVisibility::Private => "lock",
+        FlagDriveFileVisibility::Public => "public",
+        FlagDriveFileVisibility::Following => "person_add",
+        FlagDriveFileVisibility::Followers => "groups",
     };
 
     view! {
