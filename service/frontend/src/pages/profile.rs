@@ -18,10 +18,10 @@ pub enum ProfileModal {
 pub fn Profile(username: String) -> impl IntoView {
     let state = expect_context::<AppState>();
 
-    let is_me = username == "me" || Some(username.clone()) == state.username.get();
+    let is_me = Some(username.clone()) == state.username.get_untracked();
 
     let display_name = if is_me {
-        state.username.get().unwrap_or_else(|| "citizen_492".to_string())
+        state.username.get_untracked().unwrap_or_else(|| username.clone())
     } else {
         username.clone()
     };
@@ -30,7 +30,7 @@ pub fn Profile(username: String) -> impl IntoView {
         let display_name = display_name.clone();
         move || {
             let name = display_name.clone();
-            let logged_in_user = state.username.get();
+            let logged_in_user = state.username.get_untracked();
             async move {
                 let client = reqwest::Client::new();
                 let res = client.get(&format!("http://127.0.0.1:4859/api/user/{}", name)).send().await.ok()?;
@@ -131,7 +131,7 @@ pub fn Profile(username: String) -> impl IntoView {
         move || {
             let current_modal = modal_state.get();
             let name = display_name.clone();
-            let logged_in_user = state.username.get();
+            let logged_in_user = state.username.get_untracked();
             async move {
                 if current_modal == ProfileModal::None { return None; }
                 let endpoint = if current_modal == ProfileModal::Followers { "followers" } else { "following" };

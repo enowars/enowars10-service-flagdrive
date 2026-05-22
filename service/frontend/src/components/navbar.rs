@@ -30,9 +30,12 @@ pub fn Navbar() -> impl IntoView {
                                 >
                                     "Dashboard"
                                 </button>
-                                <button
+                                 <button
                                     class="px-3 sm:px-4 py-2 rounded-md text-sm font-medium text-neutral-600 dark:text-neutral-300 hover:text-gov-red dark:hover:text-gov-red hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all"
-                                    on:click=move |_| page.set(Page::Profile("me".to_string()))
+                                    on:click=move |_| {
+                                        let current_user = state.username.get_untracked().unwrap_or_else(|| "me".to_string());
+                                        page.set(Page::Profile(current_user));
+                                    }
                                 >
                                     "Profile"
                                 </button>
