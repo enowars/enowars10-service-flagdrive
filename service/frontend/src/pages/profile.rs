@@ -1,13 +1,16 @@
 use crate::components::navbar::Navbar;
+use crate::app::AppState;
 use shared::FlagDriveUser;
 use leptos::prelude::*;
 
 #[component]
 pub fn Profile(username: String) -> impl IntoView {
-    let is_me = username == "me" || username == "citizen_492";
+    let state = expect_context::<AppState>();
+
+    let is_me = username == "me" || Some(username.clone()) == state.username.get();
 
     let display_name = if is_me {
-        "citizen_492".to_string()
+        state.username.get().unwrap_or_else(|| "citizen_492".to_string())
     } else {
         username.clone()
     };

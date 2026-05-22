@@ -16,32 +16,44 @@ pub enum Page {
     Profile(String),
 }
 
+#[derive(Copy, Clone)]
+pub struct AppState {
+    pub page: RwSignal<Page>,
+    pub auth_token: Signal<Option<String>>,
+    pub set_auth_token: WriteSignal<Option<String>>,
+    pub username: Signal<Option<String>>,
+    pub set_username: WriteSignal<Option<String>>,
+}
+
 #[component]
 pub fn App() -> impl IntoView {
     let (auth_token, set_auth_token, _) =
         use_local_storage::<Option<String>, JsonSerdeCodec>("flagdrive_auth_token");
+    let (username, set_username, _) =
+        use_local_storage::<Option<String>, JsonSerdeCodec>("flagdrive_username");
 
-    // If we have a token, start on the Dashboard
     let initial_page = if auth_token.get_untracked().is_some() {
         Page::Dashboard
     } else {
         Page::Landing
     };
 
-    let (page, set_page) = signal(initial_page);
-    provide_context(set_page);
-    provide_context(page);
+    let page = RwSignal::new(initial_page);
 
-    // Global Auth State
-    provide_context(auth_token);
-    provide_context(set_auth_token);
+    provide_context(AppState {
+        page,
+        auth_token,
+        set_auth_token,
+        username,
+        set_username,
+    });
 
-    // Setup dark mode using leptos_use
     let UseColorModeReturn { mode, set_mode, .. } = use_color_mode_with_options(
         UseColorModeOptions::default()
             .attribute("class")
+            .storage_key("theme")
             .emit_auto(true)
-            .initial_value(ColorMode::Dark),
+            .initial_value(ColorMode::Auto),
     );
 
     let toggle_mode = move |_| {
@@ -62,7 +74,6 @@ pub fn App() -> impl IntoView {
                 Page::Profile(username) => view! { <Profile username=username/> }.into_any(),
             }}
 
-            // Theme Toggle FAB (Floating Action Button)
             <button
                 class="fixed bottom-6 right-6 p-4 rounded-full shadow-lg bg-white dark:bg-gov-surface-dark text-gov-red hover:shadow-xl hover:scale-110 transition-all border border-neutral-200 dark:border-neutral-700 flex items-center justify-center z-50"
                 on:click=toggle_mode

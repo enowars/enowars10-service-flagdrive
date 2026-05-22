@@ -1,11 +1,6 @@
 use crate::FlagDriveAPIState;
 use crate::database::{create_new_token, create_new_user};
-use axum::{
-    Json,
-    extract::State,
-    http::StatusCode,
-    response::{IntoResponse, Response},
-};
+use axum::{Json, body::Body, extract::State, http::StatusCode, response::Response};
 use rand::prelude::*;
 use serde_json::{Value, json};
 
@@ -23,11 +18,13 @@ pub async fn register_new_user(
         .unwrap_or("");
 
     if username.is_empty() || password.is_empty() {
-        return (
-            StatusCode::BAD_REQUEST,
-            Json(json!({ "error": "Username and password are required" })),
-        )
-            .into_response();
+        return Response::builder()
+            .status(StatusCode::BAD_REQUEST)
+            .header("content-type", "application/json")
+            .body(Body::from(
+                json!({ "error": "Username and password are required" }).to_string(),
+            ))
+            .unwrap();
     }
 
     let encryption_key = rand::rng()
@@ -40,24 +37,30 @@ pub async fn register_new_user(
         .await
         .is_err()
     {
-        return (
-            StatusCode::CONFLICT,
-            Json(json!({ "error": "User already exists" })),
-        )
-            .into_response();
+        return Response::builder()
+            .status(StatusCode::CONFLICT)
+            .header("content-type", "application/json")
+            .body(Body::from(
+                json!({ "error": "User already exists" }).to_string(),
+            ))
+            .unwrap();
     }
 
     let Ok(token) = create_new_token(&api_state.pool, username).await else {
-        return (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({ "error": "Failed to generate secure session token" })),
-        )
-            .into_response();
+        return Response::builder()
+            .status(StatusCode::INTERNAL_SERVER_ERROR)
+            .header("content-type", "application/json")
+            .body(Body::from(
+                json!({ "error": "Failed to generate secure session token" }).to_string(),
+            ))
+            .unwrap();
     };
 
-    (
-        StatusCode::CREATED,
-        Json(json!({ "token": token, "username": username })),
-    )
-        .into_response()
+    Response::builder()
+        .status(StatusCode::CREATED)
+        .header("content-type", "application/json")
+        .body(Body::from(
+            json!({ "token": token, "username": username }).to_string(),
+        ))
+        .unwrap()
 }

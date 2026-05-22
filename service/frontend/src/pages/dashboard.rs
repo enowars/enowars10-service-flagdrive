@@ -1,10 +1,14 @@
 use crate::components::file_card::FileCard;
 use crate::components::navbar::Navbar;
+use crate::app::AppState;
 use shared::{FlagDriveFile, FlagDriveFileVisibility};
 use leptos::prelude::*;
 
 #[component]
 pub fn Dashboard() -> impl IntoView {
+    let state = expect_context::<AppState>();
+    let username = move || state.username.get().unwrap_or_else(|| "citizen_492".to_string());
+
     let (is_dragging, set_is_dragging) = signal(false);
     let (show_modal, set_show_modal) = signal(false);
     let (_visibility, set_visibility) = signal(FlagDriveFileVisibility::Private);
@@ -31,10 +35,13 @@ pub fn Dashboard() -> impl IntoView {
         set_show_modal.set(false);
     };
 
-    let files_resource = LocalResource::new(|| async move {
-        let client = reqwest::Client::new();
-        let res = client.get("http://127.0.0.1:4859/api/files/citizen_492").send().await.ok()?;
-        res.json::<Vec<FlagDriveFile>>().await.ok()
+    let files_resource = LocalResource::new(move || {
+        let user = username();
+        async move {
+            let client = reqwest::Client::new();
+            let res = client.get(&format!("http://127.0.0.1:4859/api/files/{}", user)).send().await.ok()?;
+            res.json::<Vec<FlagDriveFile>>().await.ok()
+        }
     });
 
     view! {
