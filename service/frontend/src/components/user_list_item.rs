@@ -2,12 +2,15 @@ use leptos::prelude::*;
 use crate::app::AppState;
 
 #[component]
-pub fn UserListItem<F>(
+pub fn UserListItem<F, G>(
     user: String,
+    is_followed: bool,
     on_navigate: F,
+    on_toggle: G,
 ) -> impl IntoView 
 where
     F: Fn(String) + 'static + Send + Sync + Clone,
+    G: Fn(String, bool) + 'static + Send + Sync + Clone,
 {
     let state = expect_context::<AppState>();
     let u_clone = user.clone();
@@ -30,11 +33,27 @@ where
                 <span class="font-medium text-neutral-900 dark:text-white">{user.clone()}</span>
             </div>
             {move || if !is_self.get() {
-                view! {
-                    <button class="px-3 py-1.5 text-xs font-semibold rounded-md bg-neutral-200 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-300 dark:hover:bg-neutral-700 transition-colors">
-                        "Follow"
-                    </button>
-                }.into_any()
+                let u_clone1 = user.clone();
+                let on_toggle_clone = on_toggle.clone();
+                if is_followed {
+                    view! {
+                        <button 
+                            class="px-3 py-1.5 text-xs font-semibold rounded-md bg-neutral-200 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-300 dark:hover:bg-neutral-700 transition-colors"
+                            on:click=move |_| { on_toggle_clone(u_clone1.clone(), true); }
+                        >
+                            "Unfollow"
+                        </button>
+                    }.into_any()
+                } else {
+                    view! {
+                        <button 
+                            class="px-3 py-1.5 text-xs font-semibold rounded-md bg-gov-red text-white hover:bg-gov-red-dark transition-colors"
+                            on:click=move |_| { on_toggle_clone(u_clone1.clone(), false); }
+                        >
+                            "Follow"
+                        </button>
+                    }.into_any()
+                }
             } else {
                 view! { <div class="hidden"></div> }.into_any()
             }}

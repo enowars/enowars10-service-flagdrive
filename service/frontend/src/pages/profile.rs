@@ -127,22 +127,81 @@ pub fn Profile(username: String) -> impl IntoView {
 
     let modal_users_resource = LocalResource::new({
         let display_name = display_name.clone();
+        let state = state.clone();
         move || {
             let current_modal = modal_state.get();
             let name = display_name.clone();
+            let logged_in_user = state.username.get();
             async move {
                 if current_modal == ProfileModal::None { return None; }
                 let endpoint = if current_modal == ProfileModal::Followers { "followers" } else { "following" };
                 let client = reqwest::Client::new();
+                
                 let res = client.get(&format!("http://127.0.0.1:4859/api/user/{}/{}", name, endpoint)).send().await.ok()?;
                 let json = res.json::<serde_json::Value>().await.ok()?;
                 
                 let key = if current_modal == ProfileModal::Followers { "followers" } else { "following" };
-                if let Some(users) = json.get(key).and_then(|u| u.as_array()) {
-                    Some(users.iter().filter_map(|u| u.as_str().map(|s| s.to_string())).collect::<Vec<String>>())
-                } else {
-                    None
+                let users_list = json.get(key).and_then(|u| u.as_array())?;
+                let usernames: Vec<String> = users_list.iter().filter_map(|u| u.as_str().map(|s| s.to_string())).collect();
+                
+                let mut my_following = std::collections::HashSet::new();
+                if let Some(me) = logged_in_user {
+                    if let Ok(resp) = client.get(&format!("http://127.0.0.1:4859/api/user/{}/following", me)).send().await {
+                        if let Ok(json) = resp.json::<serde_json::Value>().await {
+                            if let Some(following) = json.get("following").and_then(|f| f.as_array()) {
+                                for val in following {
+                                    if let Some(s) = val.as_str() {
+                                        my_following.insert(s.to_lowercase());
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
+                
+                let result: Vec<(String, bool)> = usernames.into_iter().map(|u| {
+                    let is_followed = my_following.contains(&u.to_lowercase());
+                    (u, is_followed)
+                }).collect();
+                
+                Some(result)
+            }
+        }
+    });
+
+    let modal_follow_action = Action::new_local({
+        let state = state.clone();
+        move |(target_user, is_following): &(String, bool)| {
+            let is_following = *is_following;
+            let target_user = target_user.clone();
+            let token = state.auth_token.get_untracked().unwrap_or_default();
+            let current_username = state.username.get_untracked().unwrap_or_default();
+            async move {
+                let action_endpoint = if is_following { "unfollow" } else { "follow" };
+                let client = reqwest::Client::new();
+                let res = client.post(&format!("http://127.0.0.1:4859/api/user/{}/{}", current_username, action_endpoint))
+                    .json(&serde_json::json!({
+                        "username": target_user,
+                        "token": token
+                    }))
+                    .send()
+                    .await;
+                
+                match res {
+                    Ok(resp) if resp.status().is_success() => Ok(()),
+                    _ => Err("Failed to update follow relationship".to_string()),
+                }
+            }
+        }
+    });
+
+    Effect::new({
+        let modal_users_resource = modal_users_resource.clone();
+        let user_resource = user_resource.clone();
+        move |_| {
+            if let Some(Ok(())) = modal_follow_action.value().get() {
+                modal_users_resource.refetch();
+                user_resource.refetch();
             }
         }
     });
@@ -223,17 +282,22 @@ pub fn Profile(username: String) -> impl IntoView {
                                                 if users.is_empty() {
                                                     view! { <div class="text-center py-8 text-neutral-500">"No users found."</div> }.into_any()
                                                 } else {
+                                                    let modal_follow_clone = modal_follow_action.clone();
                                                     view! {
                                                         <ul class="space-y-3">
-                                                            {users.into_iter().map(|u| {
+                                                            {users.into_iter().map(|(u, is_followed)| {
                                                                 let state_clone = state.clone();
                                                                 let u_clone = u.clone();
                                                                 let on_nav = move |_nav_u| {
                                                                     modal_state.set(ProfileModal::None);
                                                                     state_clone.page.set(Page::Profile(u_clone.clone()));
                                                                 };
+                                                                let modal_follow_dispatch = modal_follow_clone.clone();
+                                                                let on_toggle = move |target_user: String, cur_following: bool| {
+                                                                    modal_follow_dispatch.dispatch((target_user, cur_following));
+                                                                };
                                                                 view! {
-                                                                    <UserListItem user=u on_navigate=on_nav />
+                                                                    <UserListItem user=u is_followed=is_followed on_navigate=on_nav on_toggle=on_toggle />
                                                                 }
                                                             }).collect_view()}
                                                         </ul>
