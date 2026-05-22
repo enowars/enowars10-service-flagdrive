@@ -1,4 +1,5 @@
 mod api_routes;
+mod cli;
 mod database;
 
 use api_routes::{
@@ -13,6 +14,8 @@ use axum::{
     Json, Router,
     routing::{get, post},
 };
+use clap::Parser;
+use cli::Args;
 use serde_json::{Value, json};
 use sqlx::SqlitePool;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -20,8 +23,9 @@ use tower_http::cors::CorsLayer;
 
 #[tokio::main]
 async fn main() {
-    let database_url = "sqlite://flagdrive.db";
-    let pool = database::connect_to_db(database_url).await;
+    let args = Args::parse();
+    let database_url = format!("sqlite://{}", args.database);
+    let pool = database::connect_to_db(&database_url).await;
 
     let flag_drive_api_state = FlagDriveAPIState { pool };
 
@@ -45,8 +49,8 @@ async fn main() {
         // TODO: remove CORS later
         .layer(CorsLayer::permissive());
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:4859").await.unwrap();
-    println!("Backend running on http://0.0.0.0:4859");
+    let listener = tokio::net::TcpListener::bind(&args.addr).await.unwrap();
+    println!("Backend running on http://{}", args.addr);
     axum::serve(listener, app).await.unwrap();
 }
 
