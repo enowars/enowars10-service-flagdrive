@@ -15,7 +15,6 @@ pub struct FlagDriveFile {
     pub owner: String,
     pub visibility: FlagDriveFileVisibility,
     pub size: u64,
-    pub content: Vec<u8>,
     pub created_at: u64,
     pub encryption_key: String,
 }

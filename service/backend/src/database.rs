@@ -263,7 +263,7 @@ pub async fn get_user_files(
     username: &str,
 ) -> Result<Vec<FlagDriveFile>, sqlx::Error> {
     let rows = sqlx::query(
-        "SELECT id, name, owner, visibility, size, content, created_at, encryption_key FROM files \
+        "SELECT id, name, owner, visibility, size, created_at, encryption_key FROM files \
          WHERE owner = $1 \
          OR (owner IN (SELECT followee FROM follows WHERE follower = $1) AND (visibility = 1 OR visibility = 3)) \
          OR (owner IN (SELECT follower FROM follows WHERE followee = $1) AND (visibility = 2))"
@@ -274,30 +274,19 @@ pub async fn get_user_files(
 
     let files = rows
         .into_iter()
-        .map(|row| {
-            let id: i64 = row.get("id");
-            let name: String = row.get("name");
-            let owner: String = row.get("owner");
-            let visibility_int: i32 = row.get("visibility");
-            let size: i64 = row.get("size");
-            let content: Vec<u8> = row.get("content");
-            let created_at: i64 = row.get("created_at");
-
-            FlagDriveFile {
-                id: id as u64,
-                name,
-                owner,
-                visibility: match visibility_int {
-                    1 => FlagDriveFileVisibility::Public,
-                    2 => FlagDriveFileVisibility::Following,
-                    3 => FlagDriveFileVisibility::Followers,
-                    _ => FlagDriveFileVisibility::Private,
-                },
-                size: size as u64,
-                content,
-                created_at: created_at as u64,
-                encryption_key: "".to_string(),
-            }
+        .map(|row| FlagDriveFile {
+            id: row.get::<i64, _>("id") as u64,
+            name: row.get("name"),
+            owner: row.get("owner"),
+            visibility: match row.get("visibility") {
+                1 => FlagDriveFileVisibility::Public,
+                2 => FlagDriveFileVisibility::Following,
+                3 => FlagDriveFileVisibility::Followers,
+                _ => FlagDriveFileVisibility::Private,
+            },
+            size: row.get::<i64, _>("size") as u64,
+            created_at: row.get::<i64, _>("created_at") as u64,
+            encryption_key: row.get("encryption_key"),
         })
         .collect();
 
@@ -338,7 +327,10 @@ pub async fn add_upload_file(
     Ok(())
 }
 
-pub async fn get_download_file(pool: &SqlitePool, id: i64) -> Result<FlagDriveFile, sqlx::Error> {
+pub async fn get_download_file(
+    pool: &SqlitePool,
+    id: i64,
+) -> Result<(FlagDriveFile, Vec<u8>), sqlx::Error> {
     let row = sqlx::query(
         "SELECT id, name, owner, visibility, size, content, created_at, encryption_key FROM files \
          WHERE id = ?",
@@ -348,20 +340,23 @@ pub async fn get_download_file(pool: &SqlitePool, id: i64) -> Result<FlagDriveFi
     .await?;
 
     let visibility_int: i32 = row.get("visibility");
+    let content: Vec<u8> = row.get("content");
 
-    Ok(FlagDriveFile {
-        id: row.get::<i64, _>("id") as u64,
-        name: row.get("name"),
-        owner: row.get("owner"),
-        visibility: match visibility_int {
-            1 => FlagDriveFileVisibility::Public,
-            2 => FlagDriveFileVisibility::Following,
-            3 => FlagDriveFileVisibility::Followers,
-            _ => FlagDriveFileVisibility::Private,
+    Ok((
+        FlagDriveFile {
+            id: row.get::<i64, _>("id") as u64,
+            name: row.get("name"),
+            owner: row.get("owner"),
+            visibility: match visibility_int {
+                1 => FlagDriveFileVisibility::Public,
+                2 => FlagDriveFileVisibility::Following,
+                3 => FlagDriveFileVisibility::Followers,
+                _ => FlagDriveFileVisibility::Private,
+            },
+            size: row.get::<i64, _>("size") as u64,
+            created_at: row.get::<i64, _>("created_at") as u64,
+            encryption_key: row.get("encryption_key"),
         },
-        size: row.get::<i64, _>("size") as u64,
-        content: row.get("content"),
-        created_at: row.get::<i64, _>("created_at") as u64,
-        encryption_key: row.get("encryption_key"),
-    })
+        content,
+    ))
 }

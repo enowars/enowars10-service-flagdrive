@@ -148,7 +148,7 @@ pub async fn download_file(
             .into_response();
     };
 
-    let Ok(file) = get_download_file(&api_state.pool, file_id as i64).await else {
+    let Ok((file, content)) = get_download_file(&api_state.pool, file_id as i64).await else {
         return (
             StatusCode::NOT_FOUND,
             Json(json!({ "error": "File not found" })),
@@ -183,9 +183,9 @@ pub async fn download_file(
     }
 
     let returned_content = if let Some(dec_key) = decryption_key {
-        xor_cipher(&file.content, dec_key)
+        xor_cipher(&content, dec_key)
     } else {
-        file.content.clone()
+        content.clone()
     };
 
     let content_disposition = format!("attachment; filename=\"{}\"", file.name);
