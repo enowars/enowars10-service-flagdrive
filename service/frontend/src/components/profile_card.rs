@@ -31,7 +31,7 @@ pub fn ProfileCard(
                     {if is_me {
                         view! {
                             <button
-                                class="flex items-center px-4 py-2 rounded-lg font-bold text-sm bg-neutral-800 dark:bg-neutral-200 text-white dark:text-neutral-900 hover:bg-neutral-900 dark:hover:bg-white shadow-sm transition-all"
+                                class="flex items-center px-4 py-2 rounded-lg font-bold text-sm bg-gov-red text-white hover:bg-gov-red-dark shadow-sm transition-all"
                                 on:click=move |_| { gdpr_action.dispatch(()); }
                                 title="Download GDPR Data"
                             >

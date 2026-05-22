@@ -7,7 +7,7 @@ where
     F: Fn(FlagDriveFile) + 'static + Send + Sync + Clone,
 {
     let visibility_class = match file.visibility {
-        FlagDriveFileVisibility::Private => "text-neutral-600 dark:text-neutral-400 bg-neutral-100 dark:bg-gov-surface-dark border-neutral-200 dark:border-neutral-700",
+        FlagDriveFileVisibility::Private => "text-purple-700 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30 border-purple-200 dark:border-purple-800/50",
         FlagDriveFileVisibility::Public => "text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/30 border-green-200 dark:border-green-800/50",
         FlagDriveFileVisibility::Following => "text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 border-amber-200 dark:border-amber-800/50",
         FlagDriveFileVisibility::Followers => "text-sky-700 dark:text-sky-400 bg-sky-100 dark:bg-sky-900/30 border-sky-200 dark:border-sky-800/50",
@@ -31,20 +31,12 @@ where
 
     view! {
         <div class="group bg-white dark:bg-gov-surface-dark rounded-xl border border-neutral-200 dark:border-neutral-700 p-5 hover:border-gov-red dark:hover:border-gov-red transition-all duration-300 hover:shadow-md relative">
-            {move || if file.is_encrypted {
-                view! {
-                    <div class="absolute top-2 right-2 text-gov-red opacity-80" title="End-to-End Encrypted">
-                        <span class="material-icons text-sm">"lock"</span>
-                    </div>
-                }.into_any()
-            } else {
-                view! { <div class="hidden"></div> }.into_any()
-            }}
-
             <div class="flex justify-between items-start mb-4 mt-2">
                 <div class="flex-1 min-w-0 pr-4">
                     <h3 class="text-lg font-bold text-neutral-900 dark:text-white truncate group-hover:text-gov-red transition-colors flex items-center">
-                        <span class="material-icons mr-2 text-neutral-400 group-hover:text-gov-red">"description"</span>
+                        <span class="material-icons mr-2 text-neutral-400 group-hover:text-gov-red" title=if file.is_encrypted { "End-to-End Encrypted" } else { "" }>
+                            {if file.is_encrypted { "lock" } else { "description" }}
+                        </span>
                         {file.name.clone()}
                     </h3>
                     <p class="text-sm text-neutral-500 dark:text-neutral-400 mt-2">"Owner: " <span class="font-medium text-neutral-700 dark:text-neutral-300">{file.owner.clone()}</span></p>
@@ -65,7 +57,7 @@ where
                     </span>
                 </div>
                 <button 
-                    class="p-2 text-sm font-bold text-gov-red bg-red-50 dark:bg-red-900/20 rounded hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors border border-red-100 dark:border-red-900/50 flex items-center justify-center"
+                    class="p-2 text-sm font-bold text-white bg-gov-red rounded hover:bg-gov-red-dark transition-colors shadow-sm flex items-center justify-center"
                     on:click=move |_| on_download(f_clone.clone())
                 >
                     <span class="material-icons text-[20px]">"download"</span>

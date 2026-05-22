@@ -5,9 +5,10 @@ use crate::database::{
 };
 use axum::{
     Json,
+    body::Body,
     extract::{Path, State},
     http::StatusCode,
-    response::{IntoResponse, Response},
+    response::Response,
 };
 use serde_json::{Value, json};
 
@@ -25,14 +26,18 @@ pub async fn get_user_info(
     let Ok(user) =
         get_user_by_username(&api_state.pool, viewed_username, Some(&viewer_username)).await
     else {
-        return (
-            StatusCode::NOT_FOUND,
-            Json(json!({ "error": "User not found" })),
-        )
-            .into_response();
+        return Response::builder()
+            .status(StatusCode::NOT_FOUND)
+            .header("content-type", "application/json")
+            .body(Body::from(json!({ "error": "User not found" }).to_string()))
+            .unwrap();
     };
 
-    (StatusCode::OK, Json(json!(user))).into_response()
+    Response::builder()
+        .status(StatusCode::OK)
+        .header("content-type", "application/json")
+        .body(Body::from(json!(user).to_string()))
+        .unwrap()
 }
 
 pub async fn follow_user_action(
@@ -47,62 +52,74 @@ pub async fn follow_user_action(
         .unwrap_or("");
 
     if token.is_empty() || followee.is_empty() {
-        return (
-            StatusCode::BAD_REQUEST,
-            Json(json!({ "error": "Token and username are required" })),
-        )
-            .into_response();
+        return Response::builder()
+            .status(StatusCode::BAD_REQUEST)
+            .header("content-type", "application/json")
+            .body(Body::from(
+                json!({ "error": "Token and username are required" }).to_string(),
+            ))
+            .unwrap();
     }
 
     let Ok(username_from_token) = get_username_from_token(&api_state.pool, token).await else {
-        return (
-            StatusCode::UNAUTHORIZED,
-            Json(json!({ "error": "Invalid token" })),
-        )
-            .into_response();
+        return Response::builder()
+            .status(StatusCode::UNAUTHORIZED)
+            .header("content-type", "application/json")
+            .body(Body::from(json!({ "error": "Invalid token" }).to_string()))
+            .unwrap();
     };
 
     if username_from_token != target_username {
-        return (
-            StatusCode::FORBIDDEN,
-            Json(json!({ "error": "Unauthorized action" })),
-        )
-            .into_response();
+        return Response::builder()
+            .status(StatusCode::FORBIDDEN)
+            .header("content-type", "application/json")
+            .body(Body::from(
+                json!({ "error": "Unauthorized action" }).to_string(),
+            ))
+            .unwrap();
     }
 
     if get_user_by_username(&api_state.pool, followee, None)
         .await
         .is_err()
     {
-        return (
-            StatusCode::NOT_FOUND,
-            Json(json!({ "error": "User to follow not found" })),
-        )
-            .into_response();
+        return Response::builder()
+            .status(StatusCode::NOT_FOUND)
+            .header("content-type", "application/json")
+            .body(Body::from(
+                json!({ "error": "User to follow not found" }).to_string(),
+            ))
+            .unwrap();
     }
 
     if target_username == followee {
-        return (
-            StatusCode::BAD_REQUEST,
-            Json(json!({ "error": "You cannot follow yourself" })),
-        )
-            .into_response();
+        return Response::builder()
+            .status(StatusCode::BAD_REQUEST)
+            .header("content-type", "application/json")
+            .body(Body::from(
+                json!({ "error": "You cannot follow yourself" }).to_string(),
+            ))
+            .unwrap();
     }
 
     match is_following(&api_state.pool, &target_username, followee).await {
         Ok(true) => {
-            return (
-                StatusCode::BAD_REQUEST,
-                Json(json!({ "error": format!("You already follow {}", followee) })),
-            )
-                .into_response();
+            return Response::builder()
+                .status(StatusCode::BAD_REQUEST)
+                .header("content-type", "application/json")
+                .body(Body::from(
+                    json!({ "error": format!("You already follow {}", followee) }).to_string(),
+                ))
+                .unwrap();
         }
         Err(_) => {
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({ "error": "Database error checking relationship" })),
-            )
-                .into_response();
+            return Response::builder()
+                .status(StatusCode::INTERNAL_SERVER_ERROR)
+                .header("content-type", "application/json")
+                .body(Body::from(
+                    json!({ "error": "Database error checking relationship" }).to_string(),
+                ))
+                .unwrap();
         }
         Ok(false) => {}
     }
@@ -111,14 +128,20 @@ pub async fn follow_user_action(
         .await
         .is_err()
     {
-        return (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({ "error": "Failed to follow user" })),
-        )
-            .into_response();
+        return Response::builder()
+            .status(StatusCode::INTERNAL_SERVER_ERROR)
+            .header("content-type", "application/json")
+            .body(Body::from(
+                json!({ "error": "Failed to follow user" }).to_string(),
+            ))
+            .unwrap();
     }
 
-    (StatusCode::OK, Json(json!({ "status": "success", "message": format!("You are now following {}", followee) }))).into_response()
+    Response::builder()
+        .status(StatusCode::OK)
+        .header("content-type", "application/json")
+        .body(Body::from(json!({ "status": "success", "message": format!("You are now following {}", followee) }).to_string()))
+        .unwrap()
 }
 
 pub async fn unfollow_user_action(
@@ -133,43 +156,51 @@ pub async fn unfollow_user_action(
         .unwrap_or("");
 
     if token.is_empty() || followee.is_empty() {
-        return (
-            StatusCode::BAD_REQUEST,
-            Json(json!({ "error": "Token and username are required" })),
-        )
-            .into_response();
+        return Response::builder()
+            .status(StatusCode::BAD_REQUEST)
+            .header("content-type", "application/json")
+            .body(Body::from(
+                json!({ "error": "Token and username are required" }).to_string(),
+            ))
+            .unwrap();
     }
 
     let Ok(username_from_token) = get_username_from_token(&api_state.pool, token).await else {
-        return (
-            StatusCode::UNAUTHORIZED,
-            Json(json!({ "error": "Invalid token" })),
-        )
-            .into_response();
+        return Response::builder()
+            .status(StatusCode::UNAUTHORIZED)
+            .header("content-type", "application/json")
+            .body(Body::from(json!({ "error": "Invalid token" }).to_string()))
+            .unwrap();
     };
 
     if username_from_token != target_username {
-        return (
-            StatusCode::FORBIDDEN,
-            Json(json!({ "error": "Unauthorized action" })),
-        )
-            .into_response();
+        return Response::builder()
+            .status(StatusCode::FORBIDDEN)
+            .header("content-type", "application/json")
+            .body(Body::from(
+                json!({ "error": "Unauthorized action" }).to_string(),
+            ))
+            .unwrap();
     }
 
     match is_following(&api_state.pool, &target_username, followee).await {
         Ok(false) => {
-            return (
-                StatusCode::BAD_REQUEST,
-                Json(json!({ "error": format!("You do not follow {}", followee) })),
-            )
-                .into_response();
+            return Response::builder()
+                .status(StatusCode::BAD_REQUEST)
+                .header("content-type", "application/json")
+                .body(Body::from(
+                    json!({ "error": format!("You do not follow {}", followee) }).to_string(),
+                ))
+                .unwrap();
         }
         Err(_) => {
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({ "error": "Database error checking relationship" })),
-            )
-                .into_response();
+            return Response::builder()
+                .status(StatusCode::INTERNAL_SERVER_ERROR)
+                .header("content-type", "application/json")
+                .body(Body::from(
+                    json!({ "error": "Database error checking relationship" }).to_string(),
+                ))
+                .unwrap();
         }
         Ok(true) => {}
     }
@@ -178,20 +209,23 @@ pub async fn unfollow_user_action(
         .await
         .is_err()
     {
-        return (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({ "error": "Failed to unfollow user" })),
-        )
-            .into_response();
+        return Response::builder()
+            .status(StatusCode::INTERNAL_SERVER_ERROR)
+            .header("content-type", "application/json")
+            .body(Body::from(
+                json!({ "error": "Failed to unfollow user" }).to_string(),
+            ))
+            .unwrap();
     }
 
-    (
-        StatusCode::OK,
-        Json(
-            json!({ "status": "success", "message": format!("You have unfollowed {}", followee) }),
-        ),
-    )
-        .into_response()
+    Response::builder()
+        .status(StatusCode::OK)
+        .header("content-type", "application/json")
+        .body(Body::from(
+            json!({ "status": "success", "message": format!("You have unfollowed {}", followee) })
+                .to_string(),
+        ))
+        .unwrap()
 }
 
 pub async fn get_followers_action(
@@ -199,14 +233,20 @@ pub async fn get_followers_action(
     Path(username): Path<String>,
 ) -> Response {
     let Ok(followers) = get_followers_list(&api_state.pool, &username).await else {
-        return (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({ "error": "Database error retrieving followers" })),
-        )
-            .into_response();
+        return Response::builder()
+            .status(StatusCode::INTERNAL_SERVER_ERROR)
+            .header("content-type", "application/json")
+            .body(Body::from(
+                json!({ "error": "Database error retrieving followers" }).to_string(),
+            ))
+            .unwrap();
     };
 
-    (StatusCode::OK, Json(json!({ "followers": followers }))).into_response()
+    Response::builder()
+        .status(StatusCode::OK)
+        .header("content-type", "application/json")
+        .body(Body::from(json!({ "followers": followers }).to_string()))
+        .unwrap()
 }
 
 pub async fn get_following_action(
@@ -214,12 +254,18 @@ pub async fn get_following_action(
     Path(username): Path<String>,
 ) -> Response {
     let Ok(following) = get_following_list(&api_state.pool, &username).await else {
-        return (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({ "error": "Database error retrieving following list" })),
-        )
-            .into_response();
+        return Response::builder()
+            .status(StatusCode::INTERNAL_SERVER_ERROR)
+            .header("content-type", "application/json")
+            .body(Body::from(
+                json!({ "error": "Database error retrieving following list" }).to_string(),
+            ))
+            .unwrap();
     };
 
-    (StatusCode::OK, Json(json!({ "following": following }))).into_response()
+    Response::builder()
+        .status(StatusCode::OK)
+        .header("content-type", "application/json")
+        .body(Body::from(json!({ "following": following }).to_string()))
+        .unwrap()
 }
