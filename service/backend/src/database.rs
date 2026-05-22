@@ -234,7 +234,7 @@ pub async fn unfollow_user(
     Ok(())
 }
 
-pub async fn _get_following_list(
+pub async fn get_following_list(
     pool: &SqlitePool,
     username: &str,
 ) -> Result<Vec<String>, sqlx::Error> {
@@ -246,7 +246,7 @@ pub async fn _get_following_list(
     Ok(following)
 }
 
-pub async fn _get_followers_list(
+pub async fn get_followers_list(
     pool: &SqlitePool,
     username: &str,
 ) -> Result<Vec<String>, sqlx::Error> {

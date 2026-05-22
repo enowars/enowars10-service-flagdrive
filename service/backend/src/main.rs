@@ -8,7 +8,10 @@ use api_routes::{
     gdpr::gdpr_request_user_data,
     login::login_as_user,
     register::register_new_user,
-    user::{follow_user_action, get_user_info, unfollow_user_action},
+    user::{
+        follow_user_action, get_followers_action, get_following_action, get_user_info,
+        unfollow_user_action,
+    },
 };
 use axum::{
     Json, Router,
@@ -37,6 +40,8 @@ async fn main() {
         .route("/api/user/{username}", get(get_user_info))
         .route("/api/user/{username}/follow", post(follow_user_action))
         .route("/api/user/{username}/unfollow", post(unfollow_user_action))
+        .route("/api/user/{username}/followers", get(get_followers_action))
+        .route("/api/user/{username}/following", get(get_following_action))
         .route("/api/gdpr/request", post(gdpr_request_user_data))
         .route(
             "/api/gdpr/download/{user_link}",

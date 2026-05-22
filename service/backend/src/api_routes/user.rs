@@ -1,6 +1,7 @@
 use crate::FlagDriveAPIState;
 use crate::database::{
-    follow_user, get_user_by_username, get_username_from_token, is_following, unfollow_user,
+    follow_user, get_followers_list, get_following_list, get_user_by_username,
+    get_username_from_token, is_following, unfollow_user,
 };
 use axum::{
     Json,
@@ -191,4 +192,34 @@ pub async fn unfollow_user_action(
         ),
     )
         .into_response()
+}
+
+pub async fn get_followers_action(
+    State(api_state): State<FlagDriveAPIState>,
+    Path(username): Path<String>,
+) -> Response {
+    let Ok(followers) = get_followers_list(&api_state.pool, &username).await else {
+        return (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": "Database error retrieving followers" })),
+        )
+            .into_response();
+    };
+
+    (StatusCode::OK, Json(json!({ "followers": followers }))).into_response()
+}
+
+pub async fn get_following_action(
+    State(api_state): State<FlagDriveAPIState>,
+    Path(username): Path<String>,
+) -> Response {
+    let Ok(following) = get_following_list(&api_state.pool, &username).await else {
+        return (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": "Database error retrieving following list" })),
+        )
+            .into_response();
+    };
+
+    (StatusCode::OK, Json(json!({ "following": following }))).into_response()
 }
