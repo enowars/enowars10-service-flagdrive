@@ -20,12 +20,11 @@ pub fn Landing() -> impl IntoView {
                     </p>
                 </div>
 
-                // Features section
                 <div class="mt-24 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto w-full px-4">
                     <div class="bg-white dark:bg-gov-surface-dark p-6 rounded-xl shadow-sm border border-neutral-200 dark:border-neutral-700">
                         <span class="material-icons text-gov-red mb-4 text-3xl">"security"</span>
-                        <h3 class="text-xl font-bold text-neutral-900 dark:text-white mb-2">"End-to-End Encryption"</h3>
-                        <p class="text-neutral-600 dark:text-neutral-400">"All files are encrypted at rest and in transit, complying with strict federal data protection regulations."</p>
+                        <h3 class="text-xl font-bold text-neutral-900 dark:text-white mb-2">"Data Encryption"</h3>
+                        <p class="text-neutral-600 dark:text-neutral-400">"All files are securely encrypted on the server, complying with strict federal data protection regulations."</p>
                     </div>
                     <div class="bg-white dark:bg-gov-surface-dark p-6 rounded-xl shadow-sm border border-neutral-200 dark:border-neutral-700">
                         <span class="material-icons text-gov-red mb-4 text-3xl">"folder_shared"</span>

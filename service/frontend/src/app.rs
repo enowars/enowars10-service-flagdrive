@@ -52,7 +52,6 @@ pub fn App() -> impl IntoView {
         UseColorModeOptions::default()
             .attribute("class")
             .storage_key("theme")
-            .emit_auto(true)
             .initial_value(ColorMode::Auto),
     );
 

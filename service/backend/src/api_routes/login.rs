@@ -26,9 +26,9 @@ pub async fn login_as_user(
             .unwrap();
     }
 
-    if check_user_password(&api_state.pool, username, password)
+    if !check_user_password(&api_state.pool, username, password)
         .await
-        .is_err()
+        .unwrap_or(false)
     {
         return Response::builder()
             .status(StatusCode::UNAUTHORIZED)
