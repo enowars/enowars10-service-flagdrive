@@ -16,7 +16,7 @@ pub struct FlagDriveFile {
     pub visibility: FlagDriveFileVisibility,
     pub size: u64,
     pub created_at: u64,
-    pub encryption_key: String,
+    pub is_encrypted: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

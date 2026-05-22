@@ -49,7 +49,7 @@ async fn main() {
         )
         .route("/api/files/{username}", get(get_file_list))
         .route("/api/file/upload", post(upload_file))
-        .route("/api/file/download/{file_id}", get(download_file))
+        .route("/api/file/download/{file_id}", get(download_file).post(download_file))
         .with_state(flag_drive_api_state)
         // TODO: remove CORS later
         .layer(CorsLayer::permissive());

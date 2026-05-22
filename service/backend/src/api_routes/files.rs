@@ -148,7 +148,7 @@ pub async fn download_file(
             .into_response();
     };
 
-    let Ok((file, content)) = get_download_file(&api_state.pool, file_id as i64).await else {
+    let Ok((file, content, real_enc_key)) = get_download_file(&api_state.pool, file_id as i64).await else {
         return (
             StatusCode::NOT_FOUND,
             Json(json!({ "error": "File not found" })),
@@ -160,7 +160,7 @@ pub async fn download_file(
 
     if !has_access {
         if let Some(dec_key) = decryption_key {
-            if !file.encryption_key.is_empty() && dec_key == file.encryption_key {
+            if !real_enc_key.is_empty() && dec_key == real_enc_key {
                 has_access = true;
             }
         }

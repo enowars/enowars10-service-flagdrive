@@ -286,7 +286,7 @@ pub async fn get_user_files(
             },
             size: row.get::<i64, _>("size") as u64,
             created_at: row.get::<i64, _>("created_at") as u64,
-            encryption_key: row.get("encryption_key"),
+            is_encrypted: !row.get::<String, _>("encryption_key").is_empty(),
         })
         .collect();
 
@@ -330,7 +330,7 @@ pub async fn add_upload_file(
 pub async fn get_download_file(
     pool: &SqlitePool,
     id: i64,
-) -> Result<(FlagDriveFile, Vec<u8>), sqlx::Error> {
+) -> Result<(FlagDriveFile, Vec<u8>, String), sqlx::Error> {
     let row = sqlx::query(
         "SELECT id, name, owner, visibility, size, content, created_at, encryption_key FROM files \
          WHERE id = ?",
@@ -339,15 +339,12 @@ pub async fn get_download_file(
     .fetch_one(pool)
     .await?;
 
-    let visibility_int: i32 = row.get("visibility");
-    let content: Vec<u8> = row.get("content");
-
     Ok((
         FlagDriveFile {
             id: row.get::<i64, _>("id") as u64,
             name: row.get("name"),
             owner: row.get("owner"),
-            visibility: match visibility_int {
+            visibility: match row.get("visibility") {
                 1 => FlagDriveFileVisibility::Public,
                 2 => FlagDriveFileVisibility::Following,
                 3 => FlagDriveFileVisibility::Followers,
@@ -355,8 +352,9 @@ pub async fn get_download_file(
             },
             size: row.get::<i64, _>("size") as u64,
             created_at: row.get::<i64, _>("created_at") as u64,
-            encryption_key: row.get("encryption_key"),
+            is_encrypted: !row.get::<String, _>("encryption_key").is_empty(),
         },
-        content,
+        row.get("content"),
+        row.get("encryption_key"),
     ))
 }
