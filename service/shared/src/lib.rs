@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub enum FileVisibility {
+pub enum FlagDriveFileVisibility {
     Private,
     Public,
     Following,
@@ -9,16 +9,19 @@ pub enum FileVisibility {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct File {
-    pub id: String,
+pub struct FlagDriveFile {
+    pub id: u64,
     pub name: String,
     pub owner: String,
-    pub visibility: FileVisibility,
-    pub size: usize,
+    pub visibility: FlagDriveFileVisibility,
+    pub size: u64,
+    pub content: Vec<u8>,
+    pub created_at: u64,
+    pub encryption_key: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct User {
+pub struct FlagDriveUser {
     pub username: String,
     pub followers_count: usize,
     pub following_count: usize,
