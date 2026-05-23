@@ -22,7 +22,7 @@ use cli::Args;
 use serde_json::{Value, json};
 use sqlx::SqlitePool;
 use std::time::{SystemTime, UNIX_EPOCH};
-use tower_http::cors::CorsLayer;
+use tower_http::{cors::CorsLayer, services::ServeDir};
 
 #[tokio::main]
 async fn main() {
@@ -32,7 +32,6 @@ async fn main() {
 
     let flag_drive_api_state = FlagDriveAPIState { pool };
 
-    // Core endpoints
     let app = Router::new()
         .route("/api/health", get(health_handler))
         .route("/api/auth/register", post(register_new_user))
@@ -49,13 +48,17 @@ async fn main() {
         )
         .route("/api/files/{username}", get(get_file_list))
         .route("/api/file/upload", post(upload_file))
-        .route("/api/file/download/{file_id}", get(download_file).post(download_file))
+        .route(
+            "/api/file/download/{file_id}",
+            get(download_file).post(download_file),
+        )
         .with_state(flag_drive_api_state)
-        // TODO: remove CORS later
-        .layer(CorsLayer::permissive());
+        .fallback_service(ServeDir::new(&args.dist));
 
     let listener = tokio::net::TcpListener::bind(&args.addr).await.unwrap();
-    println!("Backend running on http://{}", args.addr);
+    println!("Frontend dir: {}", args.dist);
+    println!("Database file: {}", args.database);
+    println!("Listening on: http://{}", args.addr);
     axum::serve(listener, app).await.unwrap();
 }
 
