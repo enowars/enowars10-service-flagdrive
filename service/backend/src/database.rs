@@ -1,5 +1,5 @@
+use flagdrive_shared::{FlagDriveFile, FlagDriveFileVisibility, FlagDriveUser};
 use rand::prelude::*;
-use shared::{FlagDriveFile, FlagDriveFileVisibility, FlagDriveUser};
 use sqlx::Row;
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePool};
 use std::str::FromStr;

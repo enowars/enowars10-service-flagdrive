@@ -1,6 +1,6 @@
 use crate::pages::profile::ProfileModal;
+use flagdrive_shared::FlagDriveUser;
 use leptos::prelude::*;
-use shared::FlagDriveUser;
 
 #[component]
 pub fn ProfileCard(
@@ -45,7 +45,7 @@ pub fn ProfileCard(
                         view! {
                             {if is_followed {
                                 view! {
-                                    <button 
+                                    <button
                                         class="flex items-center px-6 py-2 rounded-lg font-bold text-sm bg-neutral-200 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-300 dark:hover:bg-neutral-700 shadow-sm transition-all"
                                         on:click=move |_| { follow_action_clone.dispatch(true); }
                                     >
@@ -55,7 +55,7 @@ pub fn ProfileCard(
                                 }.into_any()
                             } else {
                                 view! {
-                                    <button 
+                                    <button
                                         class="flex items-center px-6 py-2 rounded-lg font-bold text-sm bg-gov-red text-white hover:bg-gov-red-dark shadow-sm transition-all"
                                         on:click=move |_| { follow_action_clone.dispatch(false); }
                                     >

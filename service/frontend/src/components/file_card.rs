@@ -1,16 +1,24 @@
+use flagdrive_shared::{FlagDriveFile, FlagDriveFileVisibility};
 use leptos::prelude::*;
-use shared::{FlagDriveFile, FlagDriveFileVisibility};
 
 #[component]
-pub fn FileCard<F>(file: FlagDriveFile, on_download: F) -> impl IntoView 
+pub fn FileCard<F>(file: FlagDriveFile, on_download: F) -> impl IntoView
 where
     F: Fn(FlagDriveFile) + 'static + Send + Sync + Clone,
 {
     let visibility_class = match file.visibility {
-        FlagDriveFileVisibility::Private => "text-purple-700 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30 border-purple-200 dark:border-purple-800/50",
-        FlagDriveFileVisibility::Public => "text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/30 border-green-200 dark:border-green-800/50",
-        FlagDriveFileVisibility::Following => "text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 border-amber-200 dark:border-amber-800/50",
-        FlagDriveFileVisibility::Followers => "text-sky-700 dark:text-sky-400 bg-sky-100 dark:bg-sky-900/30 border-sky-200 dark:border-sky-800/50",
+        FlagDriveFileVisibility::Private => {
+            "text-purple-700 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30 border-purple-200 dark:border-purple-800/50"
+        }
+        FlagDriveFileVisibility::Public => {
+            "text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/30 border-green-200 dark:border-green-800/50"
+        }
+        FlagDriveFileVisibility::Following => {
+            "text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 border-amber-200 dark:border-amber-800/50"
+        }
+        FlagDriveFileVisibility::Followers => {
+            "text-sky-700 dark:text-sky-400 bg-sky-100 dark:bg-sky-900/30 border-sky-200 dark:border-sky-800/50"
+        }
     };
 
     let visibility_label = match file.visibility {
@@ -46,7 +54,7 @@ where
                     {visibility_label}
                 </span>
             </div>
-            
+
             <div class="flex justify-between items-end mt-6 border-t border-neutral-100 dark:border-neutral-700 pt-4">
                 <div class="flex flex-col">
                     <span class="text-xs font-medium text-neutral-500 dark:text-neutral-400">{format!("{} bytes", file.size)}</span>
@@ -56,7 +64,7 @@ where
                             .unwrap_or_default()}
                     </span>
                 </div>
-                <button 
+                <button
                     class="p-2 text-sm font-bold text-white bg-gov-red rounded hover:bg-gov-red-dark transition-colors shadow-sm flex items-center justify-center"
                     on:click=move |_| on_download(f_clone.clone())
                 >

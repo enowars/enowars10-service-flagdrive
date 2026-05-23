@@ -1,5 +1,5 @@
 [package]
-name = "shared"
+name = "flagdrive-shared"
 version = "0.1.0"
 edition = "2024"
 

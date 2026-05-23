@@ -1,14 +1,19 @@
+use crate::app::AppState;
 use crate::components::file_card::FileCard;
 use crate::components::navbar::Navbar;
-use crate::app::AppState;
-use shared::{FlagDriveFile, FlagDriveFileVisibility};
+use flagdrive_shared::{FlagDriveFile, FlagDriveFileVisibility};
 use leptos::prelude::*;
 use wasm_bindgen::JsCast;
 
 #[component]
 pub fn Dashboard() -> impl IntoView {
     let state = expect_context::<AppState>();
-    let username = move || state.username.get().unwrap_or_else(|| "citizen_492".to_string());
+    let username = move || {
+        state
+            .username
+            .get()
+            .unwrap_or_else(|| "citizen_492".to_string())
+    };
 
     // Upload Modal State
     let (is_dragging, set_is_dragging) = signal(false);
@@ -26,7 +31,11 @@ pub fn Dashboard() -> impl IntoView {
         let user = username();
         async move {
             let client = reqwest::Client::new();
-            let res = client.get(&format!("http://127.0.0.1:4859/api/files/{}", user)).send().await.ok()?;
+            let res = client
+                .get(&format!("http://127.0.0.1:4859/api/files/{}", user))
+                .send()
+                .await
+                .ok()?;
             res.json::<Vec<FlagDriveFile>>().await.ok()
         }
     });
@@ -59,7 +68,10 @@ pub fn Dashboard() -> impl IntoView {
     };
 
     let on_file_change = move |ev: leptos::ev::Event| {
-        if let Some(target) = ev.target().and_then(|t| t.dyn_into::<web_sys::HtmlInputElement>().ok()) {
+        if let Some(target) = ev
+            .target()
+            .and_then(|t| t.dyn_into::<web_sys::HtmlInputElement>().ok())
+        {
             if let Some(files) = target.files() {
                 if let Some(file) = files.get(0) {
                     set_selected_file.set(Some(file));
@@ -83,34 +95,44 @@ pub fn Dashboard() -> impl IntoView {
             let vis = vis.clone();
             let token = state.auth_token.get_untracked().unwrap_or_default();
             let files_resource = files_resource.clone();
-            
+
             async move {
                 let form_data = web_sys::FormData::new().unwrap();
-                form_data.append_with_blob_and_filename("file", &file, &file.name()).unwrap();
-                
+                form_data
+                    .append_with_blob_and_filename("file", &file, &file.name())
+                    .unwrap();
+
                 let vis_int = match vis {
                     FlagDriveFileVisibility::Public => 1,
                     FlagDriveFileVisibility::Following => 2,
                     FlagDriveFileVisibility::Followers => 3,
                     FlagDriveFileVisibility::Private => 0,
                 };
-                
+
                 let json_payload = serde_json::json!({
                     "token": token,
                     "encryption_key": enc_key,
                     "visibility": vis_int
                 });
-                
-                form_data.append_with_str("json", &json_payload.to_string()).unwrap();
-                
+
+                form_data
+                    .append_with_str("json", &json_payload.to_string())
+                    .unwrap();
+
                 let mut opts = web_sys::RequestInit::new();
                 opts.set_method("POST");
                 opts.set_body(&form_data.into());
-                
-                let request = web_sys::Request::new_with_str_and_init("http://127.0.0.1:4859/api/file/upload", &opts).unwrap();
+
+                let request = web_sys::Request::new_with_str_and_init(
+                    "http://127.0.0.1:4859/api/file/upload",
+                    &opts,
+                )
+                .unwrap();
                 let window = web_sys::window().unwrap();
-                
-                if let Ok(resp_value) = wasm_bindgen_futures::JsFuture::from(window.fetch_with_request(&request)).await {
+
+                if let Ok(resp_value) =
+                    wasm_bindgen_futures::JsFuture::from(window.fetch_with_request(&request)).await
+                {
                     if let Ok(resp) = resp_value.dyn_into::<web_sys::Response>() {
                         if resp.ok() {
                             files_resource.refetch();
@@ -129,7 +151,7 @@ pub fn Dashboard() -> impl IntoView {
             let file = file.clone();
             let dec_key = dec_key.clone();
             let token = state.auth_token.get_untracked().unwrap_or_default();
-            
+
             async move {
                 let json_payload = serde_json::json!({
                     "token": token,
@@ -139,23 +161,36 @@ pub fn Dashboard() -> impl IntoView {
                 let mut opts = web_sys::RequestInit::new();
                 opts.set_method("POST");
                 opts.set_body(&wasm_bindgen::JsValue::from_str(&json_payload.to_string()));
-                
+
                 let headers = web_sys::Headers::new().unwrap();
                 headers.append("Content-Type", "application/json").unwrap();
                 opts.set_headers(&headers);
 
-                let request = web_sys::Request::new_with_str_and_init(&format!("http://127.0.0.1:4859/api/file/download/{}", file.id), &opts).unwrap();
+                let request = web_sys::Request::new_with_str_and_init(
+                    &format!("http://127.0.0.1:4859/api/file/download/{}", file.id),
+                    &opts,
+                )
+                .unwrap();
                 let window = web_sys::window().unwrap();
-                
-                if let Ok(resp_value) = wasm_bindgen_futures::JsFuture::from(window.fetch_with_request(&request)).await {
+
+                if let Ok(resp_value) =
+                    wasm_bindgen_futures::JsFuture::from(window.fetch_with_request(&request)).await
+                {
                     if let Ok(resp) = resp_value.dyn_into::<web_sys::Response>() {
                         if resp.ok() {
                             if let Ok(blob_promise) = resp.blob() {
-                                if let Ok(blob_value) = wasm_bindgen_futures::JsFuture::from(blob_promise).await {
+                                if let Ok(blob_value) =
+                                    wasm_bindgen_futures::JsFuture::from(blob_promise).await
+                                {
                                     if let Ok(blob) = blob_value.dyn_into::<web_sys::Blob>() {
-                                        let url = web_sys::Url::create_object_url_with_blob(&blob).unwrap();
+                                        let url = web_sys::Url::create_object_url_with_blob(&blob)
+                                            .unwrap();
                                         let document = window.document().unwrap();
-                                        let a = document.create_element("a").unwrap().dyn_into::<web_sys::HtmlAnchorElement>().unwrap();
+                                        let a = document
+                                            .create_element("a")
+                                            .unwrap()
+                                            .dyn_into::<web_sys::HtmlAnchorElement>()
+                                            .unwrap();
                                         a.set_href(&url);
                                         a.set_download(&file.name);
                                         a.click();
@@ -275,7 +310,7 @@ pub fn Dashboard() -> impl IntoView {
                                     <option value="Followers">"Followers (Only my followers)"</option>
                                     <option value="Public">"Public (Everyone)"</option>
                                 </select>
-                                
+
                                 <label class="block text-sm font-bold text-neutral-700 dark:text-neutral-300 mb-2">"Encryption Key (Optional)"</label>
                                 <input
                                     type="password"
@@ -284,11 +319,11 @@ pub fn Dashboard() -> impl IntoView {
                                     on:input=move |ev| set_encryption_key.set(event_target_value(&ev))
                                 />
 
-                                <input 
-                                    type="file" 
-                                    class="hidden" 
-                                    node_ref=file_input_ref 
-                                    on:change=on_file_change 
+                                <input
+                                    type="file"
+                                    class="hidden"
+                                    node_ref=file_input_ref
+                                    on:change=on_file_change
                                 />
 
                                 <div
@@ -333,7 +368,7 @@ pub fn Dashboard() -> impl IntoView {
                                 >
                                     "Cancel"
                                 </button>
-                                <button 
+                                <button
                                     class="px-4 py-2 font-bold text-white bg-gov-red rounded-lg shadow-sm transition-colors"
                                     class=("opacity-50", move || selected_file.get().is_none() || upload_action.pending().get())
                                     class=("cursor-not-allowed", move || selected_file.get().is_none() || upload_action.pending().get())
@@ -377,7 +412,7 @@ pub fn Dashboard() -> impl IntoView {
                                 <p class="text-sm text-neutral-600 dark:text-neutral-400 mb-4">
                                     "The file " <span class="font-bold text-neutral-900 dark:text-white">{file.name.clone()}</span> " is end-to-end encrypted. Enter the decryption key to access it."
                                 </p>
-                                
+
                                 <input
                                     type="password"
                                     placeholder="Decryption Key"
@@ -400,7 +435,7 @@ pub fn Dashboard() -> impl IntoView {
                                 >
                                     "Cancel"
                                 </button>
-                                <button 
+                                <button
                                     class="px-4 py-2 font-bold text-white bg-gov-red hover:bg-gov-red-dark rounded-lg shadow-sm transition-colors w-1/2 flex items-center justify-center"
                                     class=("opacity-50", move || decryption_key.get().is_empty() || download_action.pending().get())
                                     class=("cursor-not-allowed", move || decryption_key.get().is_empty() || download_action.pending().get())

@@ -3,5 +3,5 @@ target = "index.html"
 
 [[hooks]]
 stage = "build"
-command = "npx"
-command_arguments = ["@tailwindcss/cli", "-i", "src/styles/tailwind.css", "-o", "style/tailwind.css"]
+command = "tailwindcss"
+command_arguments = ["-i", "src/styles/tailwind.css", "-o", "style/tailwind.css"]

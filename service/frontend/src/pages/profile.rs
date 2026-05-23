@@ -1,8 +1,8 @@
+use crate::app::{AppState, Page};
 use crate::components::navbar::Navbar;
 use crate::components::profile_card::ProfileCard;
 use crate::components::user_list_item::UserListItem;
-use crate::app::{AppState, Page};
-use shared::FlagDriveUser;
+use flagdrive_shared::FlagDriveUser;
 use leptos::prelude::*;
 use leptos::serde_json;
 use leptos::web_sys;
@@ -21,7 +21,10 @@ pub fn Profile(username: String) -> impl IntoView {
     let is_me = Some(username.clone()) == state.username.get_untracked();
 
     let display_name = if is_me {
-        state.username.get_untracked().unwrap_or_else(|| username.clone())
+        state
+            .username
+            .get_untracked()
+            .unwrap_or_else(|| username.clone())
     } else {
         username.clone()
     };
@@ -33,17 +36,29 @@ pub fn Profile(username: String) -> impl IntoView {
             let logged_in_user = state.username.get_untracked();
             async move {
                 let client = reqwest::Client::new();
-                let res = client.get(&format!("http://127.0.0.1:4859/api/user/{}", name)).send().await.ok()?;
+                let res = client
+                    .get(&format!("http://127.0.0.1:4859/api/user/{}", name))
+                    .send()
+                    .await
+                    .ok()?;
                 let mut user = res.json::<FlagDriveUser>().await.ok()?;
-                
+
                 if let Some(me) = logged_in_user {
                     if me.to_lowercase() == name.to_lowercase() {
                         user.is_followed = false;
-                    } else if let Ok(resp) = client.get(&format!("http://127.0.0.1:4859/api/user/{}/following", me)).send().await {
+                    } else if let Ok(resp) = client
+                        .get(&format!("http://127.0.0.1:4859/api/user/{}/following", me))
+                        .send()
+                        .await
+                    {
                         if let Ok(json) = resp.json::<serde_json::Value>().await {
-                            if let Some(following) = json.get("following").and_then(|f| f.as_array()) {
+                            if let Some(following) =
+                                json.get("following").and_then(|f| f.as_array())
+                            {
                                 let is_following = following.iter().any(|val| {
-                                    val.as_str().map(|s| s.to_lowercase() == name.to_lowercase()).unwrap_or(false)
+                                    val.as_str()
+                                        .map(|s| s.to_lowercase() == name.to_lowercase())
+                                        .unwrap_or(false)
                                 });
                                 user.is_followed = is_following;
                             }
@@ -69,19 +84,23 @@ pub fn Profile(username: String) -> impl IntoView {
         let current_username = state.username.get_untracked().unwrap_or_default();
         async move {
             let client = reqwest::Client::new();
-            let res = client.post("http://127.0.0.1:4859/api/gdpr/request")
+            let res = client
+                .post("http://127.0.0.1:4859/api/gdpr/request")
                 .json(&serde_json::json!({
                     "username": current_username,
                     "token": token
                 }))
                 .send()
                 .await;
-            
+
             if let Ok(resp) = res {
                 if let Ok(json) = resp.json::<serde_json::Value>().await {
                     if let Some(gdpr_id) = json.get("gdpr_id").and_then(|id| id.as_str()) {
                         if let Some(window) = web_sys::window() {
-                            let _ = window.location().assign(&format!("http://127.0.0.1:4859/api/gdpr/download/{}", gdpr_id));
+                            let _ = window.location().assign(&format!(
+                                "http://127.0.0.1:4859/api/gdpr/download/{}",
+                                gdpr_id
+                            ));
                         }
                         return Ok(());
                     }
@@ -101,14 +120,18 @@ pub fn Profile(username: String) -> impl IntoView {
             async move {
                 let action_endpoint = if is_following { "unfollow" } else { "follow" };
                 let client = reqwest::Client::new();
-                let res = client.post(&format!("http://127.0.0.1:4859/api/user/{}/{}", current_username, action_endpoint))
+                let res = client
+                    .post(&format!(
+                        "http://127.0.0.1:4859/api/user/{}/{}",
+                        current_username, action_endpoint
+                    ))
                     .json(&serde_json::json!({
                         "username": display_name,
                         "token": token
                     }))
                     .send()
                     .await;
-                
+
                 match res {
                     Ok(resp) if resp.status().is_success() => Ok(()),
                     _ => Err("Failed to update follow relationship".to_string()),
@@ -133,22 +156,48 @@ pub fn Profile(username: String) -> impl IntoView {
             let name = display_name.clone();
             let logged_in_user = state.username.get_untracked();
             async move {
-                if current_modal == ProfileModal::None { return None; }
-                let endpoint = if current_modal == ProfileModal::Followers { "followers" } else { "following" };
+                if current_modal == ProfileModal::None {
+                    return None;
+                }
+                let endpoint = if current_modal == ProfileModal::Followers {
+                    "followers"
+                } else {
+                    "following"
+                };
                 let client = reqwest::Client::new();
-                
-                let res = client.get(&format!("http://127.0.0.1:4859/api/user/{}/{}", name, endpoint)).send().await.ok()?;
+
+                let res = client
+                    .get(&format!(
+                        "http://127.0.0.1:4859/api/user/{}/{}",
+                        name, endpoint
+                    ))
+                    .send()
+                    .await
+                    .ok()?;
                 let json = res.json::<serde_json::Value>().await.ok()?;
-                
-                let key = if current_modal == ProfileModal::Followers { "followers" } else { "following" };
+
+                let key = if current_modal == ProfileModal::Followers {
+                    "followers"
+                } else {
+                    "following"
+                };
                 let users_list = json.get(key).and_then(|u| u.as_array())?;
-                let usernames: Vec<String> = users_list.iter().filter_map(|u| u.as_str().map(|s| s.to_string())).collect();
-                
+                let usernames: Vec<String> = users_list
+                    .iter()
+                    .filter_map(|u| u.as_str().map(|s| s.to_string()))
+                    .collect();
+
                 let mut my_following = std::collections::HashSet::new();
                 if let Some(me) = logged_in_user {
-                    if let Ok(resp) = client.get(&format!("http://127.0.0.1:4859/api/user/{}/following", me)).send().await {
+                    if let Ok(resp) = client
+                        .get(&format!("http://127.0.0.1:4859/api/user/{}/following", me))
+                        .send()
+                        .await
+                    {
                         if let Ok(json) = resp.json::<serde_json::Value>().await {
-                            if let Some(following) = json.get("following").and_then(|f| f.as_array()) {
+                            if let Some(following) =
+                                json.get("following").and_then(|f| f.as_array())
+                            {
                                 for val in following {
                                     if let Some(s) = val.as_str() {
                                         my_following.insert(s.to_lowercase());
@@ -158,12 +207,15 @@ pub fn Profile(username: String) -> impl IntoView {
                         }
                     }
                 }
-                
-                let result: Vec<(String, bool)> = usernames.into_iter().map(|u| {
-                    let is_followed = my_following.contains(&u.to_lowercase());
-                    (u, is_followed)
-                }).collect();
-                
+
+                let result: Vec<(String, bool)> = usernames
+                    .into_iter()
+                    .map(|u| {
+                        let is_followed = my_following.contains(&u.to_lowercase());
+                        (u, is_followed)
+                    })
+                    .collect();
+
                 Some(result)
             }
         }
@@ -179,14 +231,18 @@ pub fn Profile(username: String) -> impl IntoView {
             async move {
                 let action_endpoint = if is_following { "unfollow" } else { "follow" };
                 let client = reqwest::Client::new();
-                let res = client.post(&format!("http://127.0.0.1:4859/api/user/{}/{}", current_username, action_endpoint))
+                let res = client
+                    .post(&format!(
+                        "http://127.0.0.1:4859/api/user/{}/{}",
+                        current_username, action_endpoint
+                    ))
                     .json(&serde_json::json!({
                         "username": target_user,
                         "token": token
                     }))
                     .send()
                     .await;
-                
+
                 match res {
                     Ok(resp) if resp.status().is_success() => Ok(()),
                     _ => Err("Failed to update follow relationship".to_string()),
@@ -211,14 +267,14 @@ pub fn Profile(username: String) -> impl IntoView {
             <Navbar />
 
             <main class="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-12 relative">
-                
+
                 <form on:submit=handle_search class="mb-8 flex gap-2 w-full">
                     <div class="relative flex-1">
                         <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <span class="material-icons text-neutral-400">"search"</span>
                         </span>
-                        <input 
-                            type="text" 
+                        <input
+                            type="text"
                             class="block w-full pl-10 pr-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-lg leading-5 bg-white dark:bg-gov-surface-dark text-neutral-900 dark:text-neutral-100 placeholder-neutral-500 focus:outline-none focus:ring-1 focus:ring-gov-red focus:border-gov-red sm:text-sm transition-colors"
                             placeholder="Search user..."
                             on:input=move |ev| search_query.set(event_target_value(&ev))
@@ -240,12 +296,12 @@ pub fn Profile(username: String) -> impl IntoView {
                             Some(None) => view! { <div class="relative z-10 p-8 text-center text-red-500">"Failed to load profile"</div> }.into_any(),
                             Some(Some(user)) => {
                                 view! {
-                                    <ProfileCard 
-                                        user=user 
-                                        is_me=is_me 
-                                        gdpr_action=gdpr_action 
+                                    <ProfileCard
+                                        user=user
+                                        is_me=is_me
+                                        gdpr_action=gdpr_action
                                         follow_action=follow_action
-                                        modal_state=modal_state 
+                                        modal_state=modal_state
                                     />
                                 }.into_any()
                             }
@@ -261,18 +317,18 @@ pub fn Profile(username: String) -> impl IntoView {
                     view! {
                         <div class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-0">
                             <div class="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity" on:click=move |_| modal_state.set(ProfileModal::None)></div>
-                            
+
                             <div class="relative bg-white dark:bg-gov-surface-dark rounded-2xl shadow-2xl w-full max-w-md flex flex-col max-h-[80vh] border border-neutral-200 dark:border-neutral-700 transform transition-all">
                                 <div class="px-6 py-4 border-b border-neutral-200 dark:border-neutral-800 flex justify-between items-center">
                                     <h2 class="text-xl font-bold text-neutral-900 dark:text-white">{title}</h2>
-                                    <button 
+                                    <button
                                         class="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 transition-colors"
                                         on:click=move |_| modal_state.set(ProfileModal::None)
                                     >
                                         <span class="material-icons">"close"</span>
                                     </button>
                                 </div>
-                                
+
                                 <div class="px-6 py-4 overflow-y-auto flex-1">
                                     <Suspense fallback=move || view! { <div class="text-center py-8 text-neutral-500">"Loading users..."</div> }>
                                         {move || match modal_users_resource.get() {
