@@ -119,7 +119,7 @@ pub fn Dashboard() -> impl IntoView {
                     .append_with_str("json", &json_payload.to_string())
                     .unwrap();
 
-                let mut opts = web_sys::RequestInit::new();
+                let opts = web_sys::RequestInit::new();
                 opts.set_method("POST");
                 opts.set_body(&form_data.into());
 
@@ -158,7 +158,7 @@ pub fn Dashboard() -> impl IntoView {
                     "decryption_key": dec_key
                 });
 
-                let mut opts = web_sys::RequestInit::new();
+                let opts = web_sys::RequestInit::new();
                 opts.set_method("POST");
                 opts.set_body(&wasm_bindgen::JsValue::from_str(&json_payload.to_string()));
 
