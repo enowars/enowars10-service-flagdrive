@@ -1,6 +1,7 @@
-target/**
-backend/target/**
-frontend/target/**
-frontend/dist/**
-frontend/node_modules/**
-frontend/style/**
+target/
+backend/target/
+frontend/target/
+
+frontend/dist/
+frontend/style/
+frontend/node_modules/
