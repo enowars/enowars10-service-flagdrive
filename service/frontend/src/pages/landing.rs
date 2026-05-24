@@ -22,18 +22,24 @@ pub fn Landing() -> impl IntoView {
 
                 <div class="mt-24 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto w-full px-4">
                     <div class="bg-white dark:bg-gov-surface-dark p-6 rounded-xl shadow-sm border border-neutral-200 dark:border-neutral-700">
-                        <span class="material-icons text-gov-red mb-4 text-3xl">"security"</span>
-                        <h3 class="text-xl font-bold text-neutral-900 dark:text-white mb-2">"Data Encryption"</h3>
+                        <div class="flex items-center mb-4">
+                            <span class="material-icons text-gov-red mr-3 text-3xl">"security"</span>
+                            <h3 class="text-xl font-bold text-neutral-900 dark:text-white">"Data Encryption"</h3>
+                        </div>
                         <p class="text-neutral-600 dark:text-neutral-400">"All files are securely encrypted on the server, complying with strict federal data protection regulations."</p>
                     </div>
                     <div class="bg-white dark:bg-gov-surface-dark p-6 rounded-xl shadow-sm border border-neutral-200 dark:border-neutral-700">
-                        <span class="material-icons text-gov-red mb-4 text-3xl">"folder_shared"</span>
-                        <h3 class="text-xl font-bold text-neutral-900 dark:text-white mb-2">"Seamless Sharing"</h3>
+                        <div class="flex items-center mb-4">
+                            <span class="material-icons text-gov-red mr-3 text-3xl">"folder_shared"</span>
+                            <h3 class="text-xl font-bold text-neutral-900 dark:text-white">"Seamless Sharing"</h3>
+                        </div>
                         <p class="text-neutral-600 dark:text-neutral-400">"Share documents securely with specific departments, public citizens, or restrict access completely."</p>
                     </div>
                     <div class="bg-white dark:bg-gov-surface-dark p-6 rounded-xl shadow-sm border border-neutral-200 dark:border-neutral-700">
-                        <span class="material-icons text-gov-red mb-4 text-3xl">"devices"</span>
-                        <h3 class="text-xl font-bold text-neutral-900 dark:text-white mb-2">"Cross-Platform"</h3>
+                        <div class="flex items-center mb-4">
+                            <span class="material-icons text-gov-red mr-3 text-3xl">"devices"</span>
+                            <h3 class="text-xl font-bold text-neutral-900 dark:text-white">"Cross-Platform"</h3>
+                        </div>
                         <p class="text-neutral-600 dark:text-neutral-400">"Access your documents from any authorized device, anywhere in the union."</p>
                     </div>
                 </div>

@@ -26,7 +26,7 @@ where
     };
 
     view! {
-        <div class="flex-1 flex items-center justify-center min-h-screen p-4 bg-gov-bg-light dark:bg-gov-bg-dark">
+        <div class="flex-1 flex items-center justify-center w-full p-4 bg-gov-bg-light dark:bg-gov-bg-dark">
             <div class="w-full max-w-md bg-white dark:bg-gov-surface-dark border border-neutral-200 dark:border-neutral-700 rounded-2xl p-8 shadow-lg">
                 <div class="text-center mb-8 flex flex-col items-center">
                     <h2 class="text-3xl font-bold text-neutral-900 dark:text-white mb-2 tracking-tight">{title}</h2>

@@ -79,25 +79,28 @@ pub fn Register() -> impl IntoView {
     });
 
     view! {
-        <AuthForm
-            title="Register"
-            subtitle="Create your official FlagDrive clearance account."
-            button_label="Register"
-            loading_label="Registering..."
-            is_pending=is_pending
-            error_msg=error_msg
-            on_submit=on_submit
-            footer=move || view! {
-                <p class="text-sm text-neutral-600 dark:text-neutral-400">
-                    "Already have an account? "
-                    <span
-                        class="text-gov-red hover:underline cursor-pointer font-bold transition-colors"
-                        on:click=move |_| state.page.set(Page::Login)
-                    >
-                        "Sign in here"
-                    </span>
-                </p>
-            }
-        />
+        <div class="flex flex-col min-h-screen">
+            <crate::components::navbar::Navbar />
+            <AuthForm
+                title="Register"
+                subtitle="Create your official FlagDrive clearance account."
+                button_label="Register"
+                loading_label="Registering..."
+                is_pending=is_pending
+                error_msg=error_msg
+                on_submit=on_submit
+                footer=move || view! {
+                    <p class="text-sm text-neutral-600 dark:text-neutral-400">
+                        "Already have an account? "
+                        <span
+                            class="text-gov-red hover:underline cursor-pointer font-bold transition-colors"
+                            on:click=move |_| state.page.set(Page::Login)
+                        >
+                            "Sign in here"
+                        </span>
+                    </p>
+                }
+            />
+        </div>
     }
 }

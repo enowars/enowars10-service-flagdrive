@@ -79,25 +79,28 @@ pub fn Login() -> impl IntoView {
     });
 
     view! {
-        <AuthForm
-            title="Sign In"
-            subtitle="Sign in to your official FlagDrive account."
-            button_label="Sign In"
-            loading_label="Signing In..."
-            is_pending=is_pending
-            error_msg=error_msg
-            on_submit=on_submit
-            footer=move || view! {
-                <p class="text-sm text-neutral-600 dark:text-neutral-400">
-                    "Don't have a FlagDrive account? "
-                    <span
-                        class="text-gov-red hover:underline cursor-pointer font-bold transition-colors"
-                        on:click=move |_| state.page.set(Page::Register)
-                    >
-                        "Register here"
-                    </span>
-                </p>
-            }
-        />
+        <div class="flex flex-col min-h-screen">
+            <crate::components::navbar::Navbar />
+            <AuthForm
+                title="Sign In"
+                subtitle="Sign in to your official FlagDrive account."
+                button_label="Sign In"
+                loading_label="Signing In..."
+                is_pending=is_pending
+                error_msg=error_msg
+                on_submit=on_submit
+                footer=move || view! {
+                    <p class="text-sm text-neutral-600 dark:text-neutral-400">
+                        "Don't have a FlagDrive account? "
+                        <span
+                            class="text-gov-red hover:underline cursor-pointer font-bold transition-colors"
+                            on:click=move |_| state.page.set(Page::Register)
+                        >
+                            "Register here"
+                        </span>
+                    </p>
+                }
+            />
+        </div>
     }
 }

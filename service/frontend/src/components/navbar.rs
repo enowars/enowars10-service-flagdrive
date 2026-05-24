@@ -7,14 +7,14 @@ pub fn Navbar() -> impl IntoView {
     let page = state.page;
 
     let is_logged_in = move || {
-        matches!(page.get(), Page::Dashboard | Page::Profile(_))
+        state.username.get().is_some()
     };
 
     view! {
         <nav class="sticky top-0 z-50 bg-white dark:bg-gov-bg-dark border-b border-neutral-200 dark:border-neutral-800 shadow-sm transition-colors duration-300">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex items-center justify-between h-16">
-                    <div class="flex items-center space-x-4 cursor-pointer" on:click=move |_| page.set(if is_logged_in() { Page::Dashboard } else { Page::Landing })>
+                    <div class="flex items-center space-x-4 cursor-pointer" on:click=move |_| page.set(Page::Landing)>
                         <span class="text-2xl font-bold tracking-tight text-neutral-900 dark:text-white flex items-center">
                             <span class="text-gov-red">"Flag"</span>
                             <span>"Drive"</span>
@@ -60,7 +60,7 @@ pub fn Navbar() -> impl IntoView {
                                     "Sign In"
                                 </button>
                                 <button
-                                    class="hidden sm:inline-block px-4 py-2 rounded-md text-sm font-bold bg-gov-red text-white hover:bg-gov-red-dark shadow-sm transition-all"
+                                    class="px-4 py-2 rounded-md text-sm font-bold bg-gov-red text-white hover:bg-gov-red-dark shadow-sm transition-all"
                                     on:click=move |_| page.set(Page::Register)
                                 >
                                     "Register"
