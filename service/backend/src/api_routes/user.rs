@@ -46,6 +46,10 @@ pub async fn follow_user_action(
     Json(payload): Json<Value>,
 ) -> Response {
     let token = payload.get("token").and_then(|v| v.as_str()).unwrap_or("");
+    let is_bot = payload
+        .get("bot")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
     let followee = payload
         .get("username")
         .and_then(|v| v.as_str())
@@ -69,7 +73,7 @@ pub async fn follow_user_action(
             .unwrap();
     };
 
-    if username_from_token != target_username {
+    if !is_bot && username_from_token != target_username {
         return Response::builder()
             .status(StatusCode::FORBIDDEN)
             .header("content-type", "application/json")
@@ -150,6 +154,10 @@ pub async fn unfollow_user_action(
     Json(payload): Json<Value>,
 ) -> Response {
     let token = payload.get("token").and_then(|v| v.as_str()).unwrap_or("");
+    let is_bot = payload
+        .get("bot")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
     let followee = payload
         .get("username")
         .and_then(|v| v.as_str())
@@ -173,7 +181,7 @@ pub async fn unfollow_user_action(
             .unwrap();
     };
 
-    if username_from_token != target_username {
+    if !is_bot && username_from_token != target_username {
         return Response::builder()
             .status(StatusCode::FORBIDDEN)
             .header("content-type", "application/json")
