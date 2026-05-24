@@ -1,0 +1,15 @@
+name: enowars10-flagdrive
+
+services:
+  ctf:
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "4859:4859"
+    volumes:
+      - database:/ctf/data
+
+volumes:
+  database:
