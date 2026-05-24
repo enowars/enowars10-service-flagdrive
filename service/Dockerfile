@@ -14,9 +14,7 @@ RUN rustup target add wasm32-unknown-unknown
 
 # Install bin-installed tools for faster tool installs 
 RUN curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
-RUN cargo binstall trunk
-RUN cargo binstall cargo-chef
-RUN cargo binstall wasm-bindgen-cli
+RUN cargo binstall -y trunk@0.21.14 cargo-chef@0.1.77 wasm-bindgen-cli@0.2.121
 
 RUN curl -Lfo /usr/local/bin/tailwindcss https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64 && \
     chmod +x /usr/local/bin/tailwindcss
@@ -55,30 +53,39 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
 FROM toolchain AS builder-frontend
 WORKDIR /ctf/service
 
-COPY --from=cook-frontend /ctf/service/target /ctf/service/target
-
 # Build frontend
-COPY . .
-RUN cd frontend && trunk build --release && cd ..
+COPY --from=cook-frontend /ctf/service/target /ctf/service/target
+COPY --from=cook-frontend /ctf/service/backend /ctf/service/backend
+COPY Cargo.toml Cargo.lock ./
+COPY backend/Cargo.toml ./backend/
+COPY shared ./shared
+COPY frontend ./frontend
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    cd frontend && trunk build --release && cd ..
 
 
 # --- BUILDER-BACKEND ---
 FROM toolchain AS builder-backend
 WORKDIR /ctf/service
 
-COPY --from=cook-backend /ctf/service/target /ctf/service/target
-
 # Build backend
-COPY . .
-RUN cd backend && cargo build --release && cd ..
+COPY --from=cook-backend /ctf/service/target /ctf/service/target
+COPY --from=cook-backend /ctf/service/frontend /ctf/service/frontend
+COPY Cargo.toml Cargo.lock ./
+COPY frontend/Cargo.toml ./frontend/
+COPY shared ./shared
+COPY backend ./backend
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    cd backend && cargo build --release && cd ..
 
 
 # --- DATABASE ---
 FROM toolchain AS database
 WORKDIR /ctf/data
 
+
 # --- FINAL IMAGE ---
-FROM gcr.io/distroless/cc-debian13
+FROM gcr.io/distroless/cc-debian13 AS runtime
 
 COPY --from=builder-frontend /ctf/service/frontend/dist /ctf/service/dist
 COPY --from=builder-backend /ctf/service/target/release/flagdrive-backend /ctf/service/flagdrive

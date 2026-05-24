@@ -4,11 +4,12 @@ use crate::database::{
 };
 use axum::{
     Json,
+    body::Body,
     extract::{Multipart, Path, State},
     http::StatusCode,
-    response::{IntoResponse, Response},
+    response::Response,
 };
-use rand::RngExt;
+use rand::prelude::*;
 use serde_json::{Value, json};
 
 pub fn xor_cipher(data: &[u8], key: &str) -> Vec<u8> {
@@ -27,14 +28,20 @@ pub async fn get_file_list(
     Path(username): Path<String>,
 ) -> Response {
     let Ok(files) = get_user_files(&api_state.pool, &username).await else {
-        return (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({ "error": "Failed to retrieve user files" })),
-        )
-            .into_response();
+        return Response::builder()
+            .status(StatusCode::INTERNAL_SERVER_ERROR)
+            .header("content-type", "application/json")
+            .body(Body::from(
+                json!({ "error": "Failed to retrieve user files" }).to_string(),
+            ))
+            .unwrap();
     };
 
-    (StatusCode::OK, Json(files)).into_response()
+    Response::builder()
+        .status(StatusCode::OK)
+        .header("content-type", "application/json")
+        .body(Body::from(json!(files).to_string()))
+        .unwrap()
 }
 
 pub async fn upload_file(
@@ -80,19 +87,21 @@ pub async fn upload_file(
     let id = rand::rng().random::<u64>();
 
     if token.is_empty() || name.is_empty() || content_bytes.is_empty() {
-        return (
-            StatusCode::BAD_REQUEST,
-            Json(json!({ "error": "Token, name, and file content are required" })),
-        )
-            .into_response();
+        return Response::builder()
+            .status(StatusCode::BAD_REQUEST)
+            .header("content-type", "application/json")
+            .body(Body::from(
+                json!({ "error": "Token, name, and file content are required" }).to_string(),
+            ))
+            .unwrap();
     }
 
     let Ok(username) = get_username_from_token(&api_state.pool, &token).await else {
-        return (
-            StatusCode::UNAUTHORIZED,
-            Json(json!({ "error": "Invalid token" })),
-        )
-            .into_response();
+        return Response::builder()
+            .status(StatusCode::UNAUTHORIZED)
+            .header("content-type", "application/json")
+            .body(Body::from(json!({ "error": "Invalid token" }).to_string()))
+            .unwrap();
     };
 
     let encrypted_content = xor_cipher(&content_bytes, &encryption_key);
@@ -108,20 +117,25 @@ pub async fn upload_file(
     )
     .await
     {
-        return (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({ "error": format!("Failed to save file: {}", err) })),
-        )
-            .into_response();
+        return Response::builder()
+            .status(StatusCode::INTERNAL_SERVER_ERROR)
+            .header("content-type", "application/json")
+            .body(Body::from(
+                json!({ "error": format!("Failed to save file: {}", err) }).to_string(),
+            ))
+            .unwrap();
     }
 
-    (
-        StatusCode::CREATED,
-        Json(json!({
-            "file_id": id as u64,
-        })),
-    )
-        .into_response()
+    Response::builder()
+        .status(StatusCode::CREATED)
+        .header("content-type", "application/json")
+        .body(Body::from(
+            json!({
+                "file_id": id as u64,
+            })
+            .to_string(),
+        ))
+        .unwrap()
 }
 
 pub async fn download_file(
@@ -133,53 +147,45 @@ pub async fn download_file(
     let decryption_key = payload.get("decryption_key").and_then(|v| v.as_str());
 
     if token.is_empty() {
-        return (
-            StatusCode::BAD_REQUEST,
-            Json(json!({ "error": "Token is required" })),
-        )
-            .into_response();
+        return Response::builder()
+            .status(StatusCode::BAD_REQUEST)
+            .header("content-type", "application/json")
+            .body(Body::from(
+                json!({ "error": "Token is required" }).to_string(),
+            ))
+            .unwrap();
     }
 
     let Ok(username) = get_username_from_token(&api_state.pool, token).await else {
-        return (
-            StatusCode::UNAUTHORIZED,
-            Json(json!({ "error": "Invalid token" })),
-        )
-            .into_response();
+        return Response::builder()
+            .status(StatusCode::UNAUTHORIZED)
+            .header("content-type", "application/json")
+            .body(Body::from(json!({ "error": "Invalid token" }).to_string()))
+            .unwrap();
     };
 
-    let Ok((file, content, real_enc_key)) = get_download_file(&api_state.pool, file_id as i64).await else {
-        return (
-            StatusCode::NOT_FOUND,
-            Json(json!({ "error": "File not found" })),
-        )
-            .into_response();
+    let Ok((file, content, real_enc_key)) =
+        get_download_file(&api_state.pool, file_id as i64).await
+    else {
+        return Response::builder()
+            .status(StatusCode::NOT_FOUND)
+            .header("content-type", "application/json")
+            .body(Body::from(json!({ "error": "File not found" }).to_string()))
+            .unwrap();
     };
 
-    let mut has_access = file.owner == username;
+    let has_access = file.owner == username
+        || decryption_key.is_some_and(|key| !real_enc_key.is_empty() && key == real_enc_key)
+        || get_user_files(&api_state.pool, &username)
+            .await
+            .is_ok_and(|files| files.iter().any(|f| f.id == file.id));
 
     if !has_access {
-        if let Some(dec_key) = decryption_key {
-            if !real_enc_key.is_empty() && dec_key == real_enc_key {
-                has_access = true;
-            }
-        }
-
-        if !has_access {
-            if let Ok(visible_files) = get_user_files(&api_state.pool, &username).await {
-                if visible_files.iter().any(|f| f.id == file.id) {
-                    has_access = true;
-                }
-            }
-        }
-
-        if !has_access {
-            return (
-                StatusCode::FORBIDDEN,
-                Json(json!({ "error": "Access denied" })),
-            )
-                .into_response();
-        }
+        return Response::builder()
+            .status(StatusCode::FORBIDDEN)
+            .header("content-type", "application/json")
+            .body(Body::from(json!({ "error": "Access denied" }).to_string()))
+            .unwrap();
     }
 
     let returned_content = if let Some(dec_key) = decryption_key {
@@ -190,11 +196,10 @@ pub async fn download_file(
 
     let content_disposition = format!("attachment; filename=\"{}\"", file.name);
 
-    axum::response::Response::builder()
+    Response::builder()
         .status(StatusCode::OK)
         .header("content-type", "application/octet-stream")
         .header("content-disposition", content_disposition)
-        .body(axum::body::Body::from(returned_content))
+        .body(Body::from(returned_content))
         .unwrap()
-        .into_response()
 }

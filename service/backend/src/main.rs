@@ -22,7 +22,7 @@ use cli::Args;
 use serde_json::{Value, json};
 use sqlx::SqlitePool;
 use std::time::{SystemTime, UNIX_EPOCH};
-use tower_http::{cors::CorsLayer, services::ServeDir};
+use tower_http::services::ServeDir;
 
 #[tokio::main]
 async fn main() {
