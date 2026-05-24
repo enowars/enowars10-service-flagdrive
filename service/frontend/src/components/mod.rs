@@ -3,3 +3,5 @@ pub mod navbar;
 pub mod auth_form;
 pub mod profile_card;
 pub mod user_list_item;
+pub mod upload_modal;
+pub mod download_modal;

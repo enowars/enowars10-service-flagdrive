@@ -6,6 +6,7 @@ use flagdrive_shared::FlagDriveUser;
 use leptos::prelude::*;
 use leptos::serde_json;
 use leptos::web_sys;
+use wasm_bindgen::JsCast;
 
 #[derive(Clone, PartialEq)]
 pub enum ProfileModal {
@@ -35,32 +36,44 @@ pub fn Profile(username: String) -> impl IntoView {
             let name = display_name.clone();
             let logged_in_user = state.username.get_untracked();
             async move {
-                let client = reqwest::Client::new();
-                let res = client
-                    .get(&format!("/api/user/{}", name))
-                    .send()
-                    .await
-                    .ok()?;
-                let mut user = res.json::<FlagDriveUser>().await.ok()?;
+                let origin = web_sys::window().unwrap().location().origin().unwrap();
+                let opts = web_sys::RequestInit::new();
+                opts.set_method("GET");
+                let request = web_sys::Request::new_with_str_and_init(&format!("{}/api/user/{}", origin, name), &opts).ok()?;
+                let window = web_sys::window().unwrap();
+                let resp_value = wasm_bindgen_futures::JsFuture::from(window.fetch_with_request(&request)).await.ok()?;
+                let resp: web_sys::Response = resp_value.dyn_into().ok()?;
+                if !resp.ok() { return None; }
+                let text_promise = resp.text().ok()?;
+                let text_value = wasm_bindgen_futures::JsFuture::from(text_promise).await.ok()?;
+                let text_str = text_value.as_string()?;
+                let mut user: FlagDriveUser = serde_json::from_str(&text_str).ok()?;
 
                 if let Some(me) = logged_in_user {
                     if me.to_lowercase() == name.to_lowercase() {
                         user.is_followed = false;
-                    } else if let Ok(resp) = client
-                        .get(&format!("/api/user/{}/following", me))
-                        .send()
-                        .await
-                    {
-                        if let Ok(json) = resp.json::<serde_json::Value>().await {
-                            if let Some(following) =
-                                json.get("following").and_then(|f| f.as_array())
-                            {
-                                let is_following = following.iter().any(|val| {
-                                    val.as_str()
-                                        .map(|s| s.to_lowercase() == name.to_lowercase())
-                                        .unwrap_or(false)
-                                });
-                                user.is_followed = is_following;
+                    } else {
+                        let request = web_sys::Request::new_with_str_and_init(&format!("{}/api/user/{}/following", origin, me), &opts).ok()?;
+                        if let Ok(resp_value) = wasm_bindgen_futures::JsFuture::from(window.fetch_with_request(&request)).await {
+                            if let Ok(resp) = resp_value.dyn_into::<web_sys::Response>() {
+                                if resp.ok() {
+                                    if let Ok(text_promise) = resp.text() {
+                                        if let Ok(text_value) = wasm_bindgen_futures::JsFuture::from(text_promise).await {
+                                            if let Some(text_str) = text_value.as_string() {
+                                                if let Ok(json) = serde_json::from_str::<serde_json::Value>(&text_str) {
+                                                    if let Some(following) = json.get("following").and_then(|f| f.as_array()) {
+                                                        let is_following = following.iter().any(|val| {
+                                                            val.as_str()
+                                                                .map(|s| s.to_lowercase() == name.to_lowercase())
+                                                                .unwrap_or(false)
+                                                        });
+                                                        user.is_followed = is_following;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -83,26 +96,44 @@ pub fn Profile(username: String) -> impl IntoView {
         let token = state.auth_token.get_untracked().unwrap_or_default();
         let current_username = state.username.get_untracked().unwrap_or_default();
         async move {
-            let client = reqwest::Client::new();
-            let res = client
-                .post("/api/gdpr/request")
-                .json(&serde_json::json!({
-                    "username": current_username,
-                    "token": token
-                }))
-                .send()
-                .await;
+            let origin = web_sys::window().unwrap().location().origin().unwrap();
+            let json_payload = serde_json::json!({
+                "username": current_username,
+                "token": token
+            });
 
-            if let Ok(resp) = res {
-                if let Ok(json) = resp.json::<serde_json::Value>().await {
-                    if let Some(gdpr_id) = json.get("gdpr_id").and_then(|id| id.as_str()) {
-                        if let Some(window) = web_sys::window() {
-                            let _ = window.location().assign(&format!(
-                                "/api/gdpr/download/{}",
-                                gdpr_id
-                            ));
+            let opts = web_sys::RequestInit::new();
+            opts.set_method("POST");
+            opts.set_body(&wasm_bindgen::JsValue::from_str(&json_payload.to_string()));
+            let headers = web_sys::Headers::new().unwrap();
+            headers.append("Content-Type", "application/json").unwrap();
+            opts.set_headers(&headers);
+
+            let request = web_sys::Request::new_with_str_and_init(&format!("{}/api/gdpr/request", origin), &opts).unwrap();
+            let window = web_sys::window().unwrap();
+
+            if let Ok(resp_value) = wasm_bindgen_futures::JsFuture::from(window.fetch_with_request(&request)).await {
+                if let Ok(resp) = resp_value.dyn_into::<web_sys::Response>() {
+                    if resp.ok() {
+                        if let Ok(text_promise) = resp.text() {
+                            if let Ok(text_value) = wasm_bindgen_futures::JsFuture::from(text_promise).await {
+                                if let Some(text_str) = text_value.as_string() {
+                                    if let Ok(json) = serde_json::from_str::<serde_json::Value>(&text_str) {
+                                        if let Some(gdpr_id) = json.get("gdpr_id").and_then(|id| id.as_str()) {
+                                            if let Some(window) = web_sys::window() {
+                                                let origin = window.location().origin().unwrap();
+                                                let _ = window.location().assign(&format!(
+                                                    "{}/api/gdpr/download/{}",
+                                                    origin,
+                                                    gdpr_id
+                                                ));
+                                            }
+                                            return Ok(());
+                                        }
+                                    }
+                                }
+                            }
                         }
-                        return Ok(());
                     }
                 }
             }
@@ -119,23 +150,33 @@ pub fn Profile(username: String) -> impl IntoView {
             let current_username = state.username.get_untracked().unwrap_or_default();
             async move {
                 let action_endpoint = if is_following { "unfollow" } else { "follow" };
-                let client = reqwest::Client::new();
-                let res = client
-                    .post(&format!(
-                        "/api/user/{}/{}",
-                        current_username, action_endpoint
-                    ))
-                    .json(&serde_json::json!({
-                        "username": display_name,
-                        "token": token
-                    }))
-                    .send()
-                    .await;
+                let origin = web_sys::window().unwrap().location().origin().unwrap();
+                let json_payload = serde_json::json!({
+                    "username": display_name,
+                    "token": token
+                });
 
-                match res {
-                    Ok(resp) if resp.status().is_success() => Ok(()),
-                    _ => Err("Failed to update follow relationship".to_string()),
+                let opts = web_sys::RequestInit::new();
+                opts.set_method("POST");
+                opts.set_body(&wasm_bindgen::JsValue::from_str(&json_payload.to_string()));
+                let headers = web_sys::Headers::new().unwrap();
+                headers.append("Content-Type", "application/json").unwrap();
+                opts.set_headers(&headers);
+
+                let request = web_sys::Request::new_with_str_and_init(
+                    &format!("{}/api/user/{}/{}", origin, current_username, action_endpoint),
+                    &opts
+                ).unwrap();
+                let window = web_sys::window().unwrap();
+
+                if let Ok(resp_value) = wasm_bindgen_futures::JsFuture::from(window.fetch_with_request(&request)).await {
+                    if let Ok(resp) = resp_value.dyn_into::<web_sys::Response>() {
+                        if resp.ok() {
+                            return Ok(());
+                        }
+                    }
                 }
+                Err("Failed to update follow relationship".to_string())
             }
         }
     });
@@ -164,17 +205,20 @@ pub fn Profile(username: String) -> impl IntoView {
                 } else {
                     "following"
                 };
-                let client = reqwest::Client::new();
-
-                let res = client
-                    .get(&format!(
-                        "/api/user/{}/{}",
-                        name, endpoint
-                    ))
-                    .send()
-                    .await
-                    .ok()?;
-                let json = res.json::<serde_json::Value>().await.ok()?;
+                let origin = web_sys::window().unwrap().location().origin().unwrap();
+                
+                let opts = web_sys::RequestInit::new();
+                opts.set_method("GET");
+                let request = web_sys::Request::new_with_str_and_init(&format!("{}/api/user/{}/{}", origin, name, endpoint), &opts).ok()?;
+                let window = web_sys::window().unwrap();
+                
+                let resp_value = wasm_bindgen_futures::JsFuture::from(window.fetch_with_request(&request)).await.ok()?;
+                let resp: web_sys::Response = resp_value.dyn_into().ok()?;
+                if !resp.ok() { return None; }
+                let text_promise = resp.text().ok()?;
+                let text_value = wasm_bindgen_futures::JsFuture::from(text_promise).await.ok()?;
+                let text_str = text_value.as_string()?;
+                let json = serde_json::from_str::<serde_json::Value>(&text_str).ok()?;
 
                 let key = if current_modal == ProfileModal::Followers {
                     "followers"
@@ -189,18 +233,23 @@ pub fn Profile(username: String) -> impl IntoView {
 
                 let mut my_following = std::collections::HashSet::new();
                 if let Some(me) = logged_in_user {
-                    if let Ok(resp) = client
-                        .get(&format!("/api/user/{}/following", me))
-                        .send()
-                        .await
-                    {
-                        if let Ok(json) = resp.json::<serde_json::Value>().await {
-                            if let Some(following) =
-                                json.get("following").and_then(|f| f.as_array())
-                            {
-                                for val in following {
-                                    if let Some(s) = val.as_str() {
-                                        my_following.insert(s.to_lowercase());
+                    let request2 = web_sys::Request::new_with_str_and_init(&format!("{}/api/user/{}/following", origin, me), &opts).ok()?;
+                    if let Ok(resp_value2) = wasm_bindgen_futures::JsFuture::from(window.fetch_with_request(&request2)).await {
+                        if let Ok(resp2) = resp_value2.dyn_into::<web_sys::Response>() {
+                            if resp2.ok() {
+                                if let Ok(text_promise2) = resp2.text() {
+                                    if let Ok(text_value2) = wasm_bindgen_futures::JsFuture::from(text_promise2).await {
+                                        if let Some(text_str2) = text_value2.as_string() {
+                                            if let Ok(json2) = serde_json::from_str::<serde_json::Value>(&text_str2) {
+                                                if let Some(following) = json2.get("following").and_then(|f| f.as_array()) {
+                                                    for val in following {
+                                                        if let Some(s) = val.as_str() {
+                                                            my_following.insert(s.to_lowercase());
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -230,23 +279,33 @@ pub fn Profile(username: String) -> impl IntoView {
             let current_username = state.username.get_untracked().unwrap_or_default();
             async move {
                 let action_endpoint = if is_following { "unfollow" } else { "follow" };
-                let client = reqwest::Client::new();
-                let res = client
-                    .post(&format!(
-                        "/api/user/{}/{}",
-                        current_username, action_endpoint
-                    ))
-                    .json(&serde_json::json!({
-                        "username": target_user,
-                        "token": token
-                    }))
-                    .send()
-                    .await;
+                let origin = web_sys::window().unwrap().location().origin().unwrap();
+                let json_payload = serde_json::json!({
+                    "username": target_user,
+                    "token": token
+                });
 
-                match res {
-                    Ok(resp) if resp.status().is_success() => Ok(()),
-                    _ => Err("Failed to update follow relationship".to_string()),
+                let opts = web_sys::RequestInit::new();
+                opts.set_method("POST");
+                opts.set_body(&wasm_bindgen::JsValue::from_str(&json_payload.to_string()));
+                let headers = web_sys::Headers::new().unwrap();
+                headers.append("Content-Type", "application/json").unwrap();
+                opts.set_headers(&headers);
+
+                let request = web_sys::Request::new_with_str_and_init(
+                    &format!("{}/api/user/{}/{}", origin, current_username, action_endpoint),
+                    &opts
+                ).unwrap();
+                let window = web_sys::window().unwrap();
+
+                if let Ok(resp_value) = wasm_bindgen_futures::JsFuture::from(window.fetch_with_request(&request)).await {
+                    if let Ok(resp) = resp_value.dyn_into::<web_sys::Response>() {
+                        if resp.ok() {
+                            return Ok(());
+                        }
+                    }
                 }
+                Err("Failed to update follow relationship".to_string())
             }
         }
     });
