@@ -143,6 +143,18 @@ pub async fn get_username_from_token(
     Ok(row.get("username"))
 }
 
+pub async fn get_user_encryption_key(
+    pool: &SqlitePool,
+    username: &str,
+) -> Result<String, sqlx::Error> {
+    let row = sqlx::query("SELECT encryption_key FROM users WHERE username = ?")
+        .bind(username)
+        .fetch_one(pool)
+        .await?;
+
+    Ok(row.get("encryption_key"))
+}
+
 pub async fn delete_token(pool: &SqlitePool, token: &str) -> Result<(), sqlx::Error> {
     sqlx::query("DELETE FROM auth_token WHERE token = ?")
         .bind(token)
@@ -270,14 +282,26 @@ pub async fn get_followers_list(
 pub async fn get_user_files(
     pool: &SqlitePool,
     username: &str,
+    viewer: Option<&str>,
 ) -> Result<Vec<FlagDriveFile>, sqlx::Error> {
+    let viewer_str = viewer.unwrap_or("");
+    
     let rows = sqlx::query(
         "SELECT id, name, owner, visibility, size, created_at, encryption_key FROM files \
-         WHERE owner = $1 \
-         OR (owner IN (SELECT followee FROM follows WHERE follower = $1) AND (visibility = 1 OR visibility = 3)) \
-         OR (owner IN (SELECT follower FROM follows WHERE followee = $1) AND (visibility = 2))"
+         WHERE ( \
+             owner = $1 \
+             OR (owner IN (SELECT followee FROM follows WHERE follower = $1) AND (visibility = 1 OR visibility = 3)) \
+             OR (owner IN (SELECT follower FROM follows WHERE followee = $1) AND visibility = 2) \
+         ) \
+         AND ( \
+             visibility = 1 \
+             OR owner = $2 \
+             OR (owner IN (SELECT followee FROM follows WHERE follower = $2) AND (visibility = 1 OR visibility = 3)) \
+             OR (owner IN (SELECT follower FROM follows WHERE followee = $2) AND visibility = 2) \
+         )"
     )
     .bind(username)
+    .bind(viewer_str)
     .fetch_all(pool)
     .await?;
 

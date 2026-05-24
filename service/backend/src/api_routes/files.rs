@@ -1,6 +1,8 @@
 use crate::FlagDriveAPIState;
+use crate::crypto::{aes_gcm_decrypt, aes_gcm_encrypt};
 use crate::database::{
-    add_upload_file, get_download_file, get_user_files, get_username_from_token,
+    add_upload_file, get_download_file, get_user_encryption_key, get_user_files,
+    get_username_from_token,
 };
 use axum::{
     Json,
@@ -9,25 +11,25 @@ use axum::{
     http::StatusCode,
     response::Response,
 };
+use flagdrive_shared::FlagDriveFileVisibility;
 use rand::prelude::*;
 use serde_json::{Value, json};
-
-pub fn xor_cipher(data: &[u8], key: &str) -> Vec<u8> {
-    if key.is_empty() {
-        return data.to_vec();
-    }
-    let key_bytes = key.as_bytes();
-    data.iter()
-        .enumerate()
-        .map(|(i, &b)| b ^ key_bytes[i % key_bytes.len()])
-        .collect()
-}
 
 pub async fn get_file_list(
     State(api_state): State<FlagDriveAPIState>,
     Path(username): Path<String>,
+    payload: Option<Json<Value>>,
 ) -> Response {
-    let Ok(files) = get_user_files(&api_state.pool, &username).await else {
+    let mut viewer: Option<String> = None;
+    if let Some(Json(body)) = payload {
+        if let Some(token) = body.get("token").and_then(|v| v.as_str()) {
+            if let Ok(v) = get_username_from_token(&api_state.pool, token).await {
+                viewer = Some(v);
+            }
+        }
+    }
+
+    let Ok(files) = get_user_files(&api_state.pool, &username, viewer.as_deref()).await else {
         return Response::builder()
             .status(StatusCode::INTERNAL_SERVER_ERROR)
             .header("content-type", "application/json")
@@ -104,7 +106,10 @@ pub async fn upload_file(
             .unwrap();
     };
 
-    let encrypted_content = xor_cipher(&content_bytes, &encryption_key);
+    let user_key = get_user_encryption_key(&api_state.pool, &username)
+        .await
+        .unwrap_or_default();
+    let encrypted_content = aes_gcm_encrypt(&content_bytes, &user_key, &encryption_key);
 
     if let Err(err) = add_upload_file(
         &api_state.pool,
@@ -146,24 +151,6 @@ pub async fn download_file(
     let token = payload.get("token").and_then(|v| v.as_str()).unwrap_or("");
     let decryption_key = payload.get("decryption_key").and_then(|v| v.as_str());
 
-    if token.is_empty() {
-        return Response::builder()
-            .status(StatusCode::BAD_REQUEST)
-            .header("content-type", "application/json")
-            .body(Body::from(
-                json!({ "error": "Token is required" }).to_string(),
-            ))
-            .unwrap();
-    }
-
-    let Ok(username) = get_username_from_token(&api_state.pool, token).await else {
-        return Response::builder()
-            .status(StatusCode::UNAUTHORIZED)
-            .header("content-type", "application/json")
-            .body(Body::from(json!({ "error": "Invalid token" }).to_string()))
-            .unwrap();
-    };
-
     let Ok((file, content, real_enc_key)) =
         get_download_file(&api_state.pool, file_id as i64).await
     else {
@@ -174,9 +161,35 @@ pub async fn download_file(
             .unwrap();
     };
 
-    let has_access = file.owner == username
-        || decryption_key.is_some_and(|key| !real_enc_key.is_empty() && key == real_enc_key)
-        || get_user_files(&api_state.pool, &username)
+    let is_public = file.visibility == FlagDriveFileVisibility::Public;
+    let mut username = String::new();
+
+    if !is_public {
+        if token.is_empty() {
+            return Response::builder()
+                .status(StatusCode::BAD_REQUEST)
+                .header("content-type", "application/json")
+                .body(Body::from(
+                    json!({ "error": "Token is required" }).to_string(),
+                ))
+                .unwrap();
+        }
+
+        match get_username_from_token(&api_state.pool, token).await {
+            Ok(u) => username = u,
+            Err(_) => {
+                return Response::builder()
+                    .status(StatusCode::UNAUTHORIZED)
+                    .header("content-type", "application/json")
+                    .body(Body::from(json!({ "error": "Invalid token" }).to_string()))
+                    .unwrap();
+            }
+        }
+    }
+
+    let has_access = is_public
+        || file.owner == username
+        || get_user_files(&api_state.pool, &username, Some(&username))
             .await
             .is_ok_and(|files| files.iter().any(|f| f.id == file.id));
 
@@ -188,8 +201,21 @@ pub async fn download_file(
             .unwrap();
     }
 
+    if let Some(dec_key) = decryption_key {
+        if !real_enc_key.is_empty() && dec_key != real_enc_key {
+            return Response::builder()
+                .status(StatusCode::FORBIDDEN)
+                .header("content-type", "application/json")
+                .body(Body::from(json!({ "error": "Invalid decryption key" }).to_string()))
+                .unwrap();
+        }
+    }
+
     let returned_content = if let Some(dec_key) = decryption_key {
-        xor_cipher(&content, dec_key)
+        let owner_key = get_user_encryption_key(&api_state.pool, &file.owner)
+            .await
+            .unwrap_or_default();
+        aes_gcm_decrypt(&content, &owner_key, dec_key)
     } else {
         content.clone()
     };

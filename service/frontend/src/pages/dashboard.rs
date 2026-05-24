@@ -26,13 +26,27 @@ pub fn Dashboard() -> impl IntoView {
 
     let files_resource = LocalResource::new(move || {
         let user = username();
+        let token = state.auth_token.get_untracked();
         async move {
             if user.is_empty() {
                 return None;
             }
             let origin = web_sys::window().unwrap().location().origin().unwrap();
             let opts = web_sys::RequestInit::new();
-            opts.set_method("GET");
+            
+            if let Some(t) = token {
+                opts.set_method("POST");
+                let json_payload = leptos::serde_json::json!({
+                    "token": t
+                });
+                opts.set_body(&wasm_bindgen::JsValue::from_str(&json_payload.to_string()));
+                let headers = web_sys::Headers::new().unwrap();
+                headers.append("Content-Type", "application/json").unwrap();
+                opts.set_headers(&headers);
+            } else {
+                opts.set_method("GET");
+            }
+            
             let request = web_sys::Request::new_with_str_and_init(&format!("{}/api/files/{}", origin, user), &opts).ok()?;
             let window = web_sys::window().unwrap();
             let resp_value = wasm_bindgen_futures::JsFuture::from(window.fetch_with_request(&request)).await.ok()?;

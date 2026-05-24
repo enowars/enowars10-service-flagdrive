@@ -73,6 +73,8 @@ pub fn DownloadModal(target: RwSignal<Option<FlagDriveFile>>) -> impl IntoView {
 
     Effect::new(move |_| {
         if let Some(file) = target.get() {
+            download_action.value().set(None);
+            decryption_key.set(String::new());
             if !file.is_encrypted {
                 download_action.dispatch((file, String::new()));
             }
