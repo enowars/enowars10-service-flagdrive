@@ -8,6 +8,7 @@ use api_routes::{
     gdpr::gdpr_request_user_data,
     login::login_as_user,
     register::register_new_user,
+    token::{logout_token, verify_token},
     user::{
         follow_user_action, get_followers_action, get_following_action, get_user_info,
         unfollow_user_action,
@@ -36,6 +37,8 @@ async fn main() {
         .route("/api/health", get(health_handler))
         .route("/api/auth/register", post(register_new_user))
         .route("/api/auth/login", post(login_as_user))
+        .route("/api/token/verify", post(verify_token))
+        .route("/api/token/logout", post(logout_token))
         .route("/api/user/{username}", get(get_user_info))
         .route("/api/user/{username}/follow", post(follow_user_action))
         .route("/api/user/{username}/unfollow", post(unfollow_user_action))

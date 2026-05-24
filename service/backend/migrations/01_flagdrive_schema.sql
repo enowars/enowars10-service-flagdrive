@@ -37,7 +37,8 @@ CREATE TABLE IF NOT EXISTS gdpr_data (
 CREATE TABLE IF NOT EXISTS auth_token (
     token TEXT PRIMARY KEY,
     username TEXT NOT NULL,
-    created_at INTEGER NOT NULL
+    created_at INTEGER NOT NULL,
+    FOREIGN KEY (username) REFERENCES users (username) ON DELETE CASCADE
 );
 
 -- 

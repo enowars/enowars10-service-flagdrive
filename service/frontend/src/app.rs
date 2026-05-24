@@ -1,4 +1,5 @@
 use codee::string::JsonSerdeCodec;
+use wasm_bindgen::JsCast;
 use leptos::prelude::*;
 use leptos_use::storage::use_local_storage;
 use leptos_use::{ColorMode, UseColorModeOptions, UseColorModeReturn, use_color_mode_with_options};
@@ -39,6 +40,40 @@ pub fn App() -> impl IntoView {
     };
 
     let page = RwSignal::new(initial_page);
+
+    if let Some(token) = auth_token.get_untracked() {
+        let set_auth_token_clone = set_auth_token;
+        let set_username_clone = set_username;
+        let page_clone = page;
+
+        leptos::task::spawn_local(async move {
+            let opts = web_sys::RequestInit::new();
+            opts.set_method("POST");
+
+            let headers = web_sys::Headers::new().unwrap();
+            headers.append("Content-Type", "application/json").unwrap();
+            opts.set_headers(&headers);
+            
+            let payload = format!("{{\"token\": \"{}\"}}", token);
+            opts.set_body(&wasm_bindgen::JsValue::from_str(&payload));
+
+            if let Some(window) = web_sys::window() {
+                if let Ok(origin) = window.location().origin() {
+                    if let Ok(request) = web_sys::Request::new_with_str_and_init(&format!("{}/api/token/verify", origin), &opts) {
+                        if let Ok(resp_value) = wasm_bindgen_futures::JsFuture::from(window.fetch_with_request(&request)).await {
+                            if let Ok(resp) = resp_value.dyn_into::<web_sys::Response>() {
+                                if !resp.ok() {
+                                    set_auth_token_clone.set(None);
+                                    set_username_clone.set(None);
+                                    page_clone.set(Page::Landing);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
 
     provide_context(AppState {
         page,

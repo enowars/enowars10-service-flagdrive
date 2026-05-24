@@ -43,6 +43,27 @@ pub fn Navbar() -> impl IntoView {
                                 <button
                                     class="px-4 py-2 rounded-md text-sm font-medium text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all"
                                     on:click=move |_| {
+                                        if let Some(token) = state.auth_token.get_untracked() {
+                                            leptos::task::spawn_local(async move {
+                                                let opts = web_sys::RequestInit::new();
+                                                opts.set_method("POST");
+
+                                                let headers = web_sys::Headers::new().unwrap();
+                                                headers.append("Content-Type", "application/json").unwrap();
+                                                opts.set_headers(&headers);
+                                                
+                                                let payload = format!("{{\"token\": \"{}\"}}", token);
+                                                opts.set_body(&wasm_bindgen::JsValue::from_str(&payload));
+
+                                                if let Some(window) = web_sys::window() {
+                                                    if let Ok(origin) = window.location().origin() {
+                                                        if let Ok(request) = web_sys::Request::new_with_str_and_init(&format!("{}/api/token/logout", origin), &opts) {
+                                                            let _ = wasm_bindgen_futures::JsFuture::from(window.fetch_with_request(&request)).await;
+                                                        }
+                                                    }
+                                                }
+                                            });
+                                        }
                                         state.set_auth_token.set(None);
                                         state.set_username.set(None);
                                         page.set(Page::Landing);

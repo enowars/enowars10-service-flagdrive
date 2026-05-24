@@ -143,6 +143,15 @@ pub async fn get_username_from_token(
     Ok(row.get("username"))
 }
 
+pub async fn delete_token(pool: &SqlitePool, token: &str) -> Result<(), sqlx::Error> {
+    sqlx::query("DELETE FROM auth_token WHERE token = ?")
+        .bind(token)
+        .execute(pool)
+        .await?;
+    Ok(())
+}
+
+
 pub async fn insert_gdpr_data(
     pool: &SqlitePool,
     username: &str,
