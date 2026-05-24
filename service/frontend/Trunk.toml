@@ -1,6 +1,9 @@
 [build]
 target = "index.html"
 
+[serve]
+port = 4859
+
 [[hooks]]
 stage = "build"
 command = "tailwindcss"
