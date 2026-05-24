@@ -32,7 +32,7 @@ pub fn Dashboard() -> impl IntoView {
         async move {
             let client = reqwest::Client::new();
             let res = client
-                .get(&format!("http://127.0.0.1:4859/api/files/{}", user))
+                .get(&format!("/api/files/{}", user))
                 .send()
                 .await
                 .ok()?;
@@ -124,7 +124,7 @@ pub fn Dashboard() -> impl IntoView {
                 opts.set_body(&form_data.into());
 
                 let request = web_sys::Request::new_with_str_and_init(
-                    "http://127.0.0.1:4859/api/file/upload",
+                    "/api/file/upload",
                     &opts,
                 )
                 .unwrap();
@@ -167,7 +167,7 @@ pub fn Dashboard() -> impl IntoView {
                 opts.set_headers(&headers);
 
                 let request = web_sys::Request::new_with_str_and_init(
-                    &format!("http://127.0.0.1:4859/api/file/download/{}", file.id),
+                    &format!("/api/file/download/{}", file.id),
                     &opts,
                 )
                 .unwrap();

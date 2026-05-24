@@ -12,7 +12,7 @@ pub fn Register() -> impl IntoView {
         let password = password.clone();
         async move {
             let client = reqwest::Client::new();
-            let res = client.post("http://127.0.0.1:4859/api/auth/register")
+            let res = client.post("/api/auth/register")
                 .json(&json!({
                     "username": username,
                     "password": password

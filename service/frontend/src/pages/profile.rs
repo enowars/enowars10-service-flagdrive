@@ -37,7 +37,7 @@ pub fn Profile(username: String) -> impl IntoView {
             async move {
                 let client = reqwest::Client::new();
                 let res = client
-                    .get(&format!("http://127.0.0.1:4859/api/user/{}", name))
+                    .get(&format!("/api/user/{}", name))
                     .send()
                     .await
                     .ok()?;
@@ -47,7 +47,7 @@ pub fn Profile(username: String) -> impl IntoView {
                     if me.to_lowercase() == name.to_lowercase() {
                         user.is_followed = false;
                     } else if let Ok(resp) = client
-                        .get(&format!("http://127.0.0.1:4859/api/user/{}/following", me))
+                        .get(&format!("/api/user/{}/following", me))
                         .send()
                         .await
                     {
@@ -85,7 +85,7 @@ pub fn Profile(username: String) -> impl IntoView {
         async move {
             let client = reqwest::Client::new();
             let res = client
-                .post("http://127.0.0.1:4859/api/gdpr/request")
+                .post("/api/gdpr/request")
                 .json(&serde_json::json!({
                     "username": current_username,
                     "token": token
@@ -98,7 +98,7 @@ pub fn Profile(username: String) -> impl IntoView {
                     if let Some(gdpr_id) = json.get("gdpr_id").and_then(|id| id.as_str()) {
                         if let Some(window) = web_sys::window() {
                             let _ = window.location().assign(&format!(
-                                "http://127.0.0.1:4859/api/gdpr/download/{}",
+                                "/api/gdpr/download/{}",
                                 gdpr_id
                             ));
                         }
@@ -122,7 +122,7 @@ pub fn Profile(username: String) -> impl IntoView {
                 let client = reqwest::Client::new();
                 let res = client
                     .post(&format!(
-                        "http://127.0.0.1:4859/api/user/{}/{}",
+                        "/api/user/{}/{}",
                         current_username, action_endpoint
                     ))
                     .json(&serde_json::json!({
@@ -168,7 +168,7 @@ pub fn Profile(username: String) -> impl IntoView {
 
                 let res = client
                     .get(&format!(
-                        "http://127.0.0.1:4859/api/user/{}/{}",
+                        "/api/user/{}/{}",
                         name, endpoint
                     ))
                     .send()
@@ -190,7 +190,7 @@ pub fn Profile(username: String) -> impl IntoView {
                 let mut my_following = std::collections::HashSet::new();
                 if let Some(me) = logged_in_user {
                     if let Ok(resp) = client
-                        .get(&format!("http://127.0.0.1:4859/api/user/{}/following", me))
+                        .get(&format!("/api/user/{}/following", me))
                         .send()
                         .await
                     {
@@ -233,7 +233,7 @@ pub fn Profile(username: String) -> impl IntoView {
                 let client = reqwest::Client::new();
                 let res = client
                     .post(&format!(
-                        "http://127.0.0.1:4859/api/user/{}/{}",
+                        "/api/user/{}/{}",
                         current_username, action_endpoint
                     ))
                     .json(&serde_json::json!({
