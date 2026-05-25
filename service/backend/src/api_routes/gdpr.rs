@@ -54,7 +54,7 @@ pub async fn gdpr_request_user_data(
             .take(32)
             .collect();
 
-    let filenames: Vec<String> = get_user_files(&api_state.pool, &username, None)
+    let filenames: Vec<String> = get_user_files(&api_state.pool, &username, Some(&username))
         .await
         .unwrap_or_default()
         .into_iter()
