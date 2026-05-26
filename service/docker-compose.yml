@@ -10,7 +10,7 @@ services:
       - "4859:4859"
     volumes:
       - database:/ctf/data
-    env:
+    environment:
       - RUST_BACKTRACE=1
 
 volumes:
