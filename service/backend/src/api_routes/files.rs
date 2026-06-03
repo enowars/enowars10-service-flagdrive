@@ -11,18 +11,21 @@ use axum::{
     http::StatusCode,
     response::Response,
 };
-use flagdrive_shared::FlagDriveFileVisibility;
+use flagdrive_shared::{
+    DownloadRequest, ErrorResponse, FileListRequest, FlagDriveFileVisibility, UploadMetadata,
+    UploadResponse,
+};
 use rand::prelude::*;
-use serde_json::{Value, json};
 
 pub async fn get_file_list(
     State(api_state): State<FlagDriveAPIState>,
     Path(username): Path<String>,
-    payload: Option<Json<Value>>,
+    payload: Option<Json<FileListRequest>>,
 ) -> Response {
     let mut viewer: Option<String> = None;
     if let Some(Json(body)) = payload {
-        if let Some(token) = body.get("token").and_then(|v| v.as_str()) {
+        let token = &body.token;
+        if !token.is_empty() {
             if let Ok(v) = get_username_from_token(&api_state.pool, token).await {
                 viewer = Some(v);
             }
@@ -34,7 +37,10 @@ pub async fn get_file_list(
             .status(StatusCode::INTERNAL_SERVER_ERROR)
             .header("content-type", "application/json")
             .body(Body::from(
-                json!({ "error": "Failed to retrieve user files" }).to_string(),
+                serde_json::to_string(&ErrorResponse {
+                    error: "Failed to retrieve user files".to_string(),
+                })
+                .unwrap(),
             ))
             .unwrap();
     };
@@ -42,7 +48,7 @@ pub async fn get_file_list(
     Response::builder()
         .status(StatusCode::OK)
         .header("content-type", "application/json")
-        .body(Body::from(json!(files).to_string()))
+        .body(Body::from(serde_json::to_string(&files).unwrap()))
         .unwrap()
 }
 
@@ -53,7 +59,7 @@ pub async fn upload_file(
     let mut token = String::new();
     let mut name = String::new();
     let mut encryption_key = String::new();
-    let mut visibility = 0;
+    let mut visibility = FlagDriveFileVisibility::Private;
     let mut content_bytes = Vec::new();
 
     while let Ok(Some(field)) = multipart.next_field().await {
@@ -69,16 +75,10 @@ pub async fn upload_file(
             }
             "json" => {
                 if let Ok(bytes) = field.bytes().await {
-                    if let Ok(payload) = serde_json::from_slice::<Value>(&bytes) {
-                        if let Some(t) = payload.get("token").and_then(|v| v.as_str()) {
-                            token = t.to_string();
-                        }
-                        if let Some(k) = payload.get("encryption_key").and_then(|v| v.as_str()) {
-                            encryption_key = k.to_string();
-                        }
-                        if let Some(v) = payload.get("visibility").and_then(|v| v.as_i64()) {
-                            visibility = v as i32;
-                        }
+                    if let Ok(payload) = serde_json::from_slice::<UploadMetadata>(&bytes) {
+                        token = payload.token;
+                        encryption_key = payload.encryption_key;
+                        visibility = payload.visibility;
                     }
                 }
             }
@@ -93,7 +93,10 @@ pub async fn upload_file(
             .status(StatusCode::BAD_REQUEST)
             .header("content-type", "application/json")
             .body(Body::from(
-                json!({ "error": "Token, name, and file content are required" }).to_string(),
+                serde_json::to_string(&ErrorResponse {
+                    error: "Token, name, and file content are required".to_string(),
+                })
+                .unwrap(),
             ))
             .unwrap();
     }
@@ -102,7 +105,12 @@ pub async fn upload_file(
         return Response::builder()
             .status(StatusCode::UNAUTHORIZED)
             .header("content-type", "application/json")
-            .body(Body::from(json!({ "error": "Invalid token" }).to_string()))
+            .body(Body::from(
+                serde_json::to_string(&ErrorResponse {
+                    error: "Invalid token".to_string(),
+                })
+                .unwrap(),
+            ))
             .unwrap();
     };
 
@@ -116,7 +124,7 @@ pub async fn upload_file(
         id as i64,
         &name,
         &username,
-        visibility,
+        visibility.to_int(),
         &encrypted_content,
         &encryption_key,
     )
@@ -126,7 +134,10 @@ pub async fn upload_file(
             .status(StatusCode::INTERNAL_SERVER_ERROR)
             .header("content-type", "application/json")
             .body(Body::from(
-                json!({ "error": format!("Failed to save file: {}", err) }).to_string(),
+                serde_json::to_string(&ErrorResponse {
+                    error: format!("Failed to save file: {}", err),
+                })
+                .unwrap(),
             ))
             .unwrap();
     }
@@ -135,10 +146,7 @@ pub async fn upload_file(
         .status(StatusCode::CREATED)
         .header("content-type", "application/json")
         .body(Body::from(
-            json!({
-                "file_id": id as u64,
-            })
-            .to_string(),
+            serde_json::to_string(&UploadResponse { file_id: id }).unwrap(),
         ))
         .unwrap()
 }
@@ -146,10 +154,10 @@ pub async fn upload_file(
 pub async fn download_file(
     State(api_state): State<FlagDriveAPIState>,
     Path(file_id): Path<u64>,
-    Json(payload): Json<Value>,
+    Json(payload): Json<DownloadRequest>,
 ) -> Response {
-    let token = payload.get("token").and_then(|v| v.as_str()).unwrap_or("");
-    let decryption_key = payload.get("decryption_key").and_then(|v| v.as_str());
+    let token = &payload.token;
+    let decryption_key = payload.decryption_key.as_deref();
 
     let Ok((file, content, real_enc_key)) =
         get_download_file(&api_state.pool, file_id as i64).await
@@ -157,7 +165,12 @@ pub async fn download_file(
         return Response::builder()
             .status(StatusCode::NOT_FOUND)
             .header("content-type", "application/json")
-            .body(Body::from(json!({ "error": "File not found" }).to_string()))
+            .body(Body::from(
+                serde_json::to_string(&ErrorResponse {
+                    error: "File not found".to_string(),
+                })
+                .unwrap(),
+            ))
             .unwrap();
     };
 
@@ -170,7 +183,10 @@ pub async fn download_file(
                 .status(StatusCode::BAD_REQUEST)
                 .header("content-type", "application/json")
                 .body(Body::from(
-                    json!({ "error": "Token is required" }).to_string(),
+                    serde_json::to_string(&ErrorResponse {
+                        error: "Token is required".to_string(),
+                    })
+                    .unwrap(),
                 ))
                 .unwrap();
         }
@@ -181,7 +197,12 @@ pub async fn download_file(
                 return Response::builder()
                     .status(StatusCode::UNAUTHORIZED)
                     .header("content-type", "application/json")
-                    .body(Body::from(json!({ "error": "Invalid token" }).to_string()))
+                    .body(Body::from(
+                        serde_json::to_string(&ErrorResponse {
+                            error: "Invalid token".to_string(),
+                        })
+                        .unwrap(),
+                    ))
                     .unwrap();
             }
         }
@@ -197,7 +218,12 @@ pub async fn download_file(
         return Response::builder()
             .status(StatusCode::FORBIDDEN)
             .header("content-type", "application/json")
-            .body(Body::from(json!({ "error": "Access denied" }).to_string()))
+            .body(Body::from(
+                serde_json::to_string(&ErrorResponse {
+                    error: "Access denied".to_string(),
+                })
+                .unwrap(),
+            ))
             .unwrap();
     }
 
@@ -206,7 +232,12 @@ pub async fn download_file(
             return Response::builder()
                 .status(StatusCode::FORBIDDEN)
                 .header("content-type", "application/json")
-                .body(Body::from(json!({ "error": "Invalid decryption key" }).to_string()))
+                .body(Body::from(
+                    serde_json::to_string(&ErrorResponse {
+                        error: "Invalid decryption key".to_string(),
+                    })
+                    .unwrap(),
+                ))
                 .unwrap();
         }
     }
@@ -229,3 +260,4 @@ pub async fn download_file(
         .body(Body::from(returned_content))
         .unwrap()
 }
+

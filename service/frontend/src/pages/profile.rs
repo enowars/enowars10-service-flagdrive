@@ -2,7 +2,10 @@ use crate::app::{AppState, Page};
 use crate::components::navbar::Navbar;
 use crate::components::profile_card::ProfileCard;
 use crate::components::user_list_item::UserListItem;
-use flagdrive_shared::FlagDriveUser;
+use flagdrive_shared::{
+    FlagDriveUser, FollowRequest, FollowersResponse, FollowingResponse, GdprRequest,
+    GdprRequestResponse,
+};
 use leptos::prelude::*;
 use leptos::serde_json;
 use leptos::web_sys;
@@ -60,15 +63,11 @@ pub fn Profile(username: String) -> impl IntoView {
                                     if let Ok(text_promise) = resp.text() {
                                         if let Ok(text_value) = wasm_bindgen_futures::JsFuture::from(text_promise).await {
                                             if let Some(text_str) = text_value.as_string() {
-                                                if let Ok(json) = serde_json::from_str::<serde_json::Value>(&text_str) {
-                                                    if let Some(following) = json.get("following").and_then(|f| f.as_array()) {
-                                                        let is_following = following.iter().any(|val| {
-                                                            val.as_str()
-                                                                .map(|s| s.to_lowercase() == name.to_lowercase())
-                                                                .unwrap_or(false)
-                                                        });
-                                                        user.is_followed = is_following;
-                                                    }
+                                                if let Ok(json) = serde_json::from_str::<FollowingResponse>(&text_str) {
+                                                    let is_following = json.following.iter().any(|s| {
+                                                        s.to_lowercase() == name.to_lowercase()
+                                                    });
+                                                    user.is_followed = is_following;
                                                 }
                                             }
                                         }
@@ -97,14 +96,15 @@ pub fn Profile(username: String) -> impl IntoView {
         let current_username = state.username.get_untracked().unwrap_or_default();
         async move {
             let origin = web_sys::window().unwrap().location().origin().unwrap();
-            let json_payload = serde_json::json!({
-                "username": current_username,
-                "token": token
-            });
+            let json_payload = serde_json::to_string(&GdprRequest {
+                username: Some(current_username),
+                token: token,
+            })
+            .unwrap();
 
             let opts = web_sys::RequestInit::new();
             opts.set_method("POST");
-            opts.set_body(&wasm_bindgen::JsValue::from_str(&json_payload.to_string()));
+            opts.set_body(&wasm_bindgen::JsValue::from_str(&json_payload));
             let headers = web_sys::Headers::new().unwrap();
             headers.append("Content-Type", "application/json").unwrap();
             opts.set_headers(&headers);
@@ -118,18 +118,17 @@ pub fn Profile(username: String) -> impl IntoView {
                         if let Ok(text_promise) = resp.text() {
                             if let Ok(text_value) = wasm_bindgen_futures::JsFuture::from(text_promise).await {
                                 if let Some(text_str) = text_value.as_string() {
-                                    if let Ok(json) = serde_json::from_str::<serde_json::Value>(&text_str) {
-                                        if let Some(gdpr_id) = json.get("gdpr_id").and_then(|id| id.as_str()) {
-                                            if let Some(window) = web_sys::window() {
-                                                let origin = window.location().origin().unwrap();
-                                                let _ = window.location().assign(&format!(
-                                                    "{}/api/gdpr/download/{}",
-                                                    origin,
-                                                    gdpr_id
-                                                ));
-                                            }
-                                            return Ok(());
+                                    if let Ok(json) = serde_json::from_str::<GdprRequestResponse>(&text_str) {
+                                        let gdpr_id = &json.gdpr_id;
+                                        if let Some(window) = web_sys::window() {
+                                            let origin = window.location().origin().unwrap();
+                                            let _ = window.location().assign(&format!(
+                                                "{}/api/gdpr/download/{}",
+                                                origin,
+                                                gdpr_id
+                                            ));
                                         }
+                                        return Ok(());
                                     }
                                 }
                             }
@@ -151,14 +150,16 @@ pub fn Profile(username: String) -> impl IntoView {
             async move {
                 let action_endpoint = if is_following { "unfollow" } else { "follow" };
                 let origin = web_sys::window().unwrap().location().origin().unwrap();
-                let json_payload = serde_json::json!({
-                    "username": display_name,
-                    "token": token
-                });
+                let json_payload = serde_json::to_string(&FollowRequest {
+                    username: display_name,
+                    token: token,
+                    bot: false,
+                })
+                .unwrap();
 
                 let opts = web_sys::RequestInit::new();
                 opts.set_method("POST");
-                opts.set_body(&wasm_bindgen::JsValue::from_str(&json_payload.to_string()));
+                opts.set_body(&wasm_bindgen::JsValue::from_str(&json_payload));
                 let headers = web_sys::Headers::new().unwrap();
                 headers.append("Content-Type", "application/json").unwrap();
                 opts.set_headers(&headers);
@@ -218,18 +219,14 @@ pub fn Profile(username: String) -> impl IntoView {
                 let text_promise = resp.text().ok()?;
                 let text_value = wasm_bindgen_futures::JsFuture::from(text_promise).await.ok()?;
                 let text_str = text_value.as_string()?;
-                let json = serde_json::from_str::<serde_json::Value>(&text_str).ok()?;
 
-                let key = if current_modal == ProfileModal::Followers {
-                    "followers"
+                let usernames: Vec<String> = if current_modal == ProfileModal::Followers {
+                    let json = serde_json::from_str::<FollowersResponse>(&text_str).ok()?;
+                    json.followers
                 } else {
-                    "following"
+                    let json = serde_json::from_str::<FollowingResponse>(&text_str).ok()?;
+                    json.following
                 };
-                let users_list = json.get(key).and_then(|u| u.as_array())?;
-                let usernames: Vec<String> = users_list
-                    .iter()
-                    .filter_map(|u| u.as_str().map(|s| s.to_string()))
-                    .collect();
 
                 let mut my_following = std::collections::HashSet::new();
                 if let Some(me) = logged_in_user {
@@ -240,13 +237,9 @@ pub fn Profile(username: String) -> impl IntoView {
                                 if let Ok(text_promise2) = resp2.text() {
                                     if let Ok(text_value2) = wasm_bindgen_futures::JsFuture::from(text_promise2).await {
                                         if let Some(text_str2) = text_value2.as_string() {
-                                            if let Ok(json2) = serde_json::from_str::<serde_json::Value>(&text_str2) {
-                                                if let Some(following) = json2.get("following").and_then(|f| f.as_array()) {
-                                                    for val in following {
-                                                        if let Some(s) = val.as_str() {
-                                                            my_following.insert(s.to_lowercase());
-                                                        }
-                                                    }
+                                            if let Ok(json2) = serde_json::from_str::<FollowingResponse>(&text_str2) {
+                                                for s in json2.following {
+                                                    my_following.insert(s.to_lowercase());
                                                 }
                                             }
                                         }
@@ -280,14 +273,16 @@ pub fn Profile(username: String) -> impl IntoView {
             async move {
                 let action_endpoint = if is_following { "unfollow" } else { "follow" };
                 let origin = web_sys::window().unwrap().location().origin().unwrap();
-                let json_payload = serde_json::json!({
-                    "username": target_user,
-                    "token": token
-                });
+                let json_payload = serde_json::to_string(&FollowRequest {
+                    username: target_user,
+                    token: token,
+                    bot: false,
+                })
+                .unwrap();
 
                 let opts = web_sys::RequestInit::new();
                 opts.set_method("POST");
-                opts.set_body(&wasm_bindgen::JsValue::from_str(&json_payload.to_string()));
+                opts.set_body(&wasm_bindgen::JsValue::from_str(&json_payload));
                 let headers = web_sys::Headers::new().unwrap();
                 headers.append("Content-Type", "application/json").unwrap();
                 opts.set_headers(&headers);

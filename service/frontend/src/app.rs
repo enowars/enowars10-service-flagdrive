@@ -1,3 +1,4 @@
+use flagdrive_shared::TokenRequest;
 use codee::string::JsonSerdeCodec;
 use wasm_bindgen::JsCast;
 use leptos::prelude::*;
@@ -54,7 +55,10 @@ pub fn App() -> impl IntoView {
             headers.append("Content-Type", "application/json").unwrap();
             opts.set_headers(&headers);
             
-            let payload = format!("{{\"token\": \"{}\"}}", token);
+            let payload = serde_json::to_string(&TokenRequest {
+                token,
+            })
+            .unwrap();
             opts.set_body(&wasm_bindgen::JsValue::from_str(&payload));
 
             if let Some(window) = web_sys::window() {
