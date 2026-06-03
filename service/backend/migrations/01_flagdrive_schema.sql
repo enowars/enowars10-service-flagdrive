@@ -1,3 +1,8 @@
+CREATE TABLE IF NOT EXISTS server_config (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS users (
     username TEXT PRIMARY KEY,
     user_password TEXT NOT NULL,
@@ -40,5 +45,3 @@ CREATE TABLE IF NOT EXISTS auth_token (
     created_at INTEGER NOT NULL,
     FOREIGN KEY (username) REFERENCES users (username) ON DELETE CASCADE
 );
-
--- 

@@ -163,7 +163,6 @@ pub async fn delete_token(pool: &SqlitePool, token: &str) -> Result<(), sqlx::Er
     Ok(())
 }
 
-
 pub async fn insert_gdpr_data(
     pool: &SqlitePool,
     username: &str,
@@ -285,7 +284,7 @@ pub async fn get_user_files(
     viewer: Option<&str>,
 ) -> Result<Vec<FlagDriveFile>, sqlx::Error> {
     let viewer_str = viewer.unwrap_or("");
-    
+
     let rows = sqlx::query(
         "SELECT id, name, owner, visibility, size, created_at, encryption_key FROM files \
          WHERE ( \
@@ -390,4 +389,27 @@ pub async fn get_download_file(
         row.get("content"),
         row.get("encryption_key"),
     ))
+}
+
+pub async fn get_or_create_server_key(pool: &SqlitePool) -> Result<String, sqlx::Error> {
+    let row = sqlx::query("SELECT value FROM server_config WHERE key = 'server_key'")
+        .fetch_optional(pool)
+        .await?;
+
+    if let Some(row) = row {
+        Ok(row.get("value"))
+    } else {
+        let new_key = rand::rng()
+            .sample_iter(&rand::distr::Alphanumeric)
+            .take(128)
+            .map(char::from)
+            .collect::<String>();
+
+        sqlx::query("INSERT INTO server_config (key, value) VALUES ('server_key', ?)")
+            .bind(&new_key)
+            .execute(pool)
+            .await?;
+
+        Ok(new_key)
+    }
 }

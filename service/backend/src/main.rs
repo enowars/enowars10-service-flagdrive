@@ -31,8 +31,11 @@ async fn main() {
     let args = Args::parse();
     let database_url = format!("sqlite://{}", args.database);
     let pool = database::connect_to_db(&database_url).await;
+    let server_key = database::get_or_create_server_key(&pool)
+        .await
+        .expect("Failed to get or create server key");
 
-    let flag_drive_api_state = FlagDriveAPIState { pool };
+    let flag_drive_api_state = FlagDriveAPIState { pool, server_key };
 
     let app = Router::new()
         .route("/api/health", get(health_handler))
@@ -68,7 +71,8 @@ async fn main() {
 
 #[derive(Clone)]
 pub struct FlagDriveAPIState {
-    pool: SqlitePool,
+    pub pool: SqlitePool,
+    pub server_key: String,
 }
 
 async fn health_handler() -> Json<Value> {

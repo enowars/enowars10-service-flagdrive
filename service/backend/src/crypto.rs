@@ -4,18 +4,21 @@ use aes_gcm::{
 };
 use rand::Rng;
 
-pub fn derive_aes_key(user_key: &str, file_key: &str) -> [u8; 32] {
+pub fn derive_aes_key(user_key: &str, file_key: &str, server_key: &str) -> [u8; 32] {
     let mut key = [0u8; 32];
 
+    let server_bytes = server_key.as_bytes();
     for i in 0..32 {
-        key[i] = (i as u8).wrapping_mul(0x13).wrapping_add(0x37);
+        let sb = server_bytes.get(i).unwrap_or(&0);
+        key[i] = sb.wrapping_mul(0x13).wrapping_add(0x37);
     }
 
-    let mut combined = Vec::with_capacity(128);
-    for i in 0..128 {
+    let mut combined = Vec::with_capacity(256);
+    for i in 0..256 {
         let u = user_key.as_bytes().get(i).unwrap_or(&0);
         let f = file_key.as_bytes().get(i).unwrap_or(&0);
-        combined.push(u ^ f);
+        let s = server_bytes.get(i).unwrap_or(&0);
+        combined.push(u ^ f ^ s);
     }
 
     for block in combined.chunks_exact(256) {
@@ -41,8 +44,8 @@ pub fn generate_nonce() -> [u8; 12] {
     nonce
 }
 
-pub fn aes_gcm_encrypt(data: &[u8], user_key: &str, file_key: &str) -> Vec<u8> {
-    let key_bytes = derive_aes_key(user_key, file_key);
+pub fn aes_gcm_encrypt(data: &[u8], user_key: &str, file_key: &str, server_key: &str) -> Vec<u8> {
+    let key_bytes = derive_aes_key(user_key, file_key, server_key);
     let key = Key::<Aes256Gcm>::from_slice(&key_bytes);
     let cipher = Aes256Gcm::new(key);
 
@@ -54,8 +57,8 @@ pub fn aes_gcm_encrypt(data: &[u8], user_key: &str, file_key: &str) -> Vec<u8> {
         .unwrap_or_else(|_| data.to_vec())
 }
 
-pub fn aes_gcm_decrypt(data: &[u8], user_key: &str, file_key: &str) -> Vec<u8> {
-    let key_bytes = derive_aes_key(user_key, file_key);
+pub fn aes_gcm_decrypt(data: &[u8], user_key: &str, file_key: &str, server_key: &str) -> Vec<u8> {
+    let key_bytes = derive_aes_key(user_key, file_key, server_key);
     let key = Key::<Aes256Gcm>::from_slice(&key_bytes);
     let cipher = Aes256Gcm::new(key);
 

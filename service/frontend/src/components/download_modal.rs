@@ -18,7 +18,7 @@ pub fn DownloadModal(target: RwSignal<Option<FlagDriveFile>>) -> impl IntoView {
             async move {
                 let json_payload = serde_json::to_string(&DownloadRequest {
                     token,
-                    decryption_key: if dec_key.is_empty() { None } else { Some(dec_key) },
+                    decryption_key: Some(dec_key),
                 })
                 .unwrap();
 

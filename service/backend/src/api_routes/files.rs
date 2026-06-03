@@ -117,7 +117,12 @@ pub async fn upload_file(
     let user_key = get_user_encryption_key(&api_state.pool, &username)
         .await
         .unwrap_or_default();
-    let encrypted_content = aes_gcm_encrypt(&content_bytes, &user_key, &encryption_key);
+    let encrypted_content = aes_gcm_encrypt(
+        &content_bytes,
+        &user_key,
+        &encryption_key,
+        &api_state.server_key,
+    );
 
     if let Err(err) = add_upload_file(
         &api_state.pool,
@@ -243,13 +248,14 @@ pub async fn download_file(
     }
 
     let returned_content = if let Some(dec_key) = decryption_key {
-        let owner_key = get_user_encryption_key(&api_state.pool, &file.owner)
+        let user_key = get_user_encryption_key(&api_state.pool, &file.owner)
             .await
             .unwrap_or_default();
-        aes_gcm_decrypt(&content, &owner_key, dec_key)
+        aes_gcm_decrypt(&content, &user_key, dec_key, &api_state.server_key)
     } else {
         content.clone()
     };
+
 
     let content_disposition = format!("attachment; filename=\"{}\"", file.name);
 
@@ -260,4 +266,3 @@ pub async fn download_file(
         .body(Body::from(returned_content))
         .unwrap()
 }
-
