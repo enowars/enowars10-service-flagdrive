@@ -189,7 +189,7 @@ pub async fn get_gdpr_data(
 ) -> Result<String, sqlx::Error> {
     let row = if timestamp_or_latest == "latest" {
         sqlx::query(
-            "SELECT content FROM gdpr_data WHERE username = ? AND nonce LIKE ? \
+            "SELECT content FROM gdpr_data WHERE username = $1 AND SUBSTR(nonce, 1, LENGTH($2)) = $2 \
              ORDER BY timestamp DESC LIMIT 1",
         )
         .bind(username)
@@ -202,7 +202,7 @@ pub async fn get_gdpr_data(
             .map_err(|_| sqlx::Error::RowNotFound)?;
 
         sqlx::query(
-            "SELECT content FROM gdpr_data WHERE username = ? AND timestamp = ? AND nonce LIKE ?",
+            "SELECT content FROM gdpr_data WHERE username = $1 AND timestamp = $2 AND SUBSTR(nonce, 1, LENGTH($3)) = $3",
         )
         .bind(username)
         .bind(timestamp)

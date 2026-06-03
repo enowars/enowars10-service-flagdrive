@@ -145,13 +145,7 @@ pub async fn gdpr_download_user_data(
             .unwrap();
     }
 
-    let chars: Vec<char> = nonce.chars().collect();
-    if chars.is_empty()
-        || chars
-            .iter()
-            .take(chars.len().saturating_sub(1).max(1))
-            .any(|c| !c.is_ascii_hexdigit())
-    {
+    if nonce.is_empty() || !nonce.chars().all(|c| c.is_ascii_hexdigit()) {
         return Response::builder()
             .status(StatusCode::NOT_FOUND)
             .header("content-type", "application/json")
