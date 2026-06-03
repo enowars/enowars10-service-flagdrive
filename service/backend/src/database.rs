@@ -1,14 +1,17 @@
 use flagdrive_shared::{FlagDriveFile, FlagDriveFileVisibility, FlagDriveUser};
 use rand::prelude::*;
 use sqlx::Row;
-use sqlx::sqlite::{SqliteConnectOptions, SqlitePool};
+use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePool, SqliteSynchronous};
 use std::str::FromStr;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 pub async fn connect_to_db(database_url: &str) -> SqlitePool {
     let connection_options = SqliteConnectOptions::from_str(database_url)
         .unwrap()
-        .create_if_missing(true);
+        .create_if_missing(true)
+        .journal_mode(SqliteJournalMode::Wal)
+        .synchronous(SqliteSynchronous::Normal)
+        .busy_timeout(Duration::from_secs(5));
 
     let pool = SqlitePool::connect_with(connection_options)
         .await
