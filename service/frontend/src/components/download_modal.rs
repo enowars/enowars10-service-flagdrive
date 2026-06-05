@@ -1,5 +1,5 @@
 use crate::app::AppState;
-use flagdrive_shared::FlagDriveFile;
+use flagdrive_shared::{DownloadRequest, FlagDriveFile};
 use leptos::prelude::*;
 use wasm_bindgen::JsCast;
 
@@ -16,14 +16,15 @@ pub fn DownloadModal(target: RwSignal<Option<FlagDriveFile>>) -> impl IntoView {
             let token = state.auth_token.get_untracked().unwrap_or_default();
 
             async move {
-                let json_payload = serde_json::json!({
-                    "token": token,
-                    "decryption_key": dec_key
-                });
+                let json_payload = serde_json::to_string(&DownloadRequest {
+                    token,
+                    decryption_key: Some(dec_key),
+                })
+                .unwrap();
 
                 let opts = web_sys::RequestInit::new();
                 opts.set_method("POST");
-                opts.set_body(&wasm_bindgen::JsValue::from_str(&json_payload.to_string()));
+                opts.set_body(&wasm_bindgen::JsValue::from_str(&json_payload));
 
                 let headers = web_sys::Headers::new().unwrap();
                 headers.append("Content-Type", "application/json").unwrap();

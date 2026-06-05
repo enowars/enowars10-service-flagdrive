@@ -1,7 +1,8 @@
 mod api_routes;
+mod auth;
 mod cli;
-mod database;
 mod crypto;
+mod database;
 
 use api_routes::{
     files::{download_file, get_file_list, upload_file},
@@ -31,8 +32,11 @@ async fn main() {
     let args = Args::parse();
     let database_url = format!("sqlite://{}", args.database);
     let pool = database::connect_to_db(&database_url).await;
+    let server_key = database::get_or_create_server_key(&pool)
+        .await
+        .expect("Failed to get or create server key");
 
-    let flag_drive_api_state = FlagDriveAPIState { pool };
+    let flag_drive_api_state = FlagDriveAPIState { pool, server_key };
 
     let app = Router::new()
         .route("/api/health", get(health_handler))
@@ -50,7 +54,10 @@ async fn main() {
             "/api/gdpr/download/{user_link}",
             get(gdpr_download_user_data),
         )
-        .route("/api/files/{username}", get(get_file_list).post(get_file_list))
+        .route(
+            "/api/files/{username}",
+            get(get_file_list).post(get_file_list),
+        )
         .route("/api/file/upload", post(upload_file))
         .route(
             "/api/file/download/{file_id}",
@@ -68,7 +75,8 @@ async fn main() {
 
 #[derive(Clone)]
 pub struct FlagDriveAPIState {
-    pool: SqlitePool,
+    pub pool: SqlitePool,
+    pub server_key: String,
 }
 
 async fn health_handler() -> Json<Value> {

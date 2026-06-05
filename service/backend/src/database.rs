@@ -1,14 +1,17 @@
 use flagdrive_shared::{FlagDriveFile, FlagDriveFileVisibility, FlagDriveUser};
 use rand::prelude::*;
 use sqlx::Row;
-use sqlx::sqlite::{SqliteConnectOptions, SqlitePool};
+use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePool, SqliteSynchronous};
 use std::str::FromStr;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 pub async fn connect_to_db(database_url: &str) -> SqlitePool {
     let connection_options = SqliteConnectOptions::from_str(database_url)
         .unwrap()
-        .create_if_missing(true);
+        .create_if_missing(true)
+        .journal_mode(SqliteJournalMode::Wal)
+        .synchronous(SqliteSynchronous::Normal)
+        .busy_timeout(Duration::from_secs(5));
 
     let pool = SqlitePool::connect_with(connection_options)
         .await
@@ -163,7 +166,6 @@ pub async fn delete_token(pool: &SqlitePool, token: &str) -> Result<(), sqlx::Er
     Ok(())
 }
 
-
 pub async fn insert_gdpr_data(
     pool: &SqlitePool,
     username: &str,
@@ -189,7 +191,7 @@ pub async fn get_gdpr_data(
 ) -> Result<String, sqlx::Error> {
     let row = if timestamp_or_latest == "latest" {
         sqlx::query(
-            "SELECT content FROM gdpr_data WHERE username = ? AND nonce LIKE ? \
+            "SELECT content FROM gdpr_data WHERE username = $1 AND SUBSTR(nonce, 1, LENGTH($2)) = $2 \
              ORDER BY timestamp DESC LIMIT 1",
         )
         .bind(username)
@@ -202,7 +204,7 @@ pub async fn get_gdpr_data(
             .map_err(|_| sqlx::Error::RowNotFound)?;
 
         sqlx::query(
-            "SELECT content FROM gdpr_data WHERE username = ? AND timestamp = ? AND nonce LIKE ?",
+            "SELECT content FROM gdpr_data WHERE username = $1 AND timestamp = $2 AND SUBSTR(nonce, 1, LENGTH($3)) = $3",
         )
         .bind(username)
         .bind(timestamp)
@@ -285,7 +287,7 @@ pub async fn get_user_files(
     viewer: Option<&str>,
 ) -> Result<Vec<FlagDriveFile>, sqlx::Error> {
     let viewer_str = viewer.unwrap_or("");
-    
+
     let rows = sqlx::query(
         "SELECT id, name, owner, visibility, size, created_at, encryption_key FROM files \
          WHERE ( \
@@ -390,4 +392,27 @@ pub async fn get_download_file(
         row.get("content"),
         row.get("encryption_key"),
     ))
+}
+
+pub async fn get_or_create_server_key(pool: &SqlitePool) -> Result<String, sqlx::Error> {
+    let row = sqlx::query("SELECT value FROM server_config WHERE key = 'server_key'")
+        .fetch_optional(pool)
+        .await?;
+
+    if let Some(row) = row {
+        Ok(row.get("value"))
+    } else {
+        let new_key = rand::rng()
+            .sample_iter(&rand::distr::Alphanumeric)
+            .take(128)
+            .map(char::from)
+            .collect::<String>();
+
+        sqlx::query("INSERT INTO server_config (key, value) VALUES ('server_key', ?)")
+            .bind(&new_key)
+            .execute(pool)
+            .await?;
+
+        Ok(new_key)
+    }
 }

@@ -76,21 +76,15 @@ where
                     .append_with_blob_and_filename("file", &file, &file.name())
                     .unwrap();
 
-                let vis_int = match vis {
-                    FlagDriveFileVisibility::Public => 1,
-                    FlagDriveFileVisibility::Following => 2,
-                    FlagDriveFileVisibility::Followers => 3,
-                    FlagDriveFileVisibility::Private => 0,
-                };
-
-                let json_payload = serde_json::json!({
-                    "token": token,
-                    "encryption_key": enc_key,
-                    "visibility": vis_int
-                });
+                let json_payload = serde_json::to_string(&flagdrive_shared::UploadMetadata {
+                    token,
+                    encryption_key: enc_key,
+                    visibility: vis,
+                })
+                .unwrap();
 
                 form_data
-                    .append_with_str("json", &json_payload.to_string())
+                    .append_with_str("json", &json_payload)
                     .unwrap();
 
                 let opts = web_sys::RequestInit::new();

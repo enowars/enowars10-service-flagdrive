@@ -5,6 +5,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - flagdirve-mongo
     ports:
       - 14859:8000
     environment:
@@ -24,6 +27,7 @@ services:
         hard: 4000
   flagdirve-mongo:
     image: mongo
+    restart: unless-stopped
     volumes:
       - mongo-data:/data/db
     environment:

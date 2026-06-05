@@ -3,7 +3,7 @@ use crate::components::file_card::FileCard;
 use crate::components::navbar::Navbar;
 use crate::components::upload_modal::UploadModal;
 use crate::components::download_modal::DownloadModal;
-use flagdrive_shared::FlagDriveFile;
+use flagdrive_shared::{FileListRequest, FlagDriveFile};
 use leptos::prelude::*;
 use wasm_bindgen::JsCast;
 
@@ -36,16 +36,18 @@ pub fn Dashboard() -> impl IntoView {
             
             if let Some(t) = token {
                 opts.set_method("POST");
-                let json_payload = leptos::serde_json::json!({
-                    "token": t
-                });
-                opts.set_body(&wasm_bindgen::JsValue::from_str(&json_payload.to_string()));
+                let json_payload = serde_json::to_string(&FileListRequest {
+                    token: t,
+                })
+                .unwrap();
+                opts.set_body(&wasm_bindgen::JsValue::from_str(&json_payload));
                 let headers = web_sys::Headers::new().unwrap();
                 headers.append("Content-Type", "application/json").unwrap();
                 opts.set_headers(&headers);
             } else {
                 opts.set_method("GET");
             }
+
             
             let request = web_sys::Request::new_with_str_and_init(&format!("{}/api/files/{}", origin, user), &opts).ok()?;
             let window = web_sys::window().unwrap();

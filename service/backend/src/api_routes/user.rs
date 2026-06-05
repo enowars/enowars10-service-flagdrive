@@ -1,4 +1,5 @@
 use crate::FlagDriveAPIState;
+use crate::auth::AuthToken;
 use crate::database::{
     follow_user, get_followers_list, get_following_list, get_user_by_username,
     get_username_from_token, is_following, unfollow_user,
@@ -10,17 +11,19 @@ use axum::{
     http::StatusCode,
     response::Response,
 };
-use serde_json::{Value, json};
+use flagdrive_shared::{
+    ErrorResponse, FollowRequest, FollowResponse, FollowersResponse, FollowingResponse,
+    UserInfoRequest,
+};
 
 pub async fn get_user_info(
     State(api_state): State<FlagDriveAPIState>,
     Path(viewer_username): Path<String>,
-    payload: Option<Json<Value>>,
+    payload: Option<Json<UserInfoRequest>>,
 ) -> Response {
     let viewed_username = payload
         .as_ref()
-        .and_then(|Json(p)| p.get("username"))
-        .and_then(|v| v.as_str())
+        .and_then(|Json(p)| p.username.as_deref())
         .unwrap_or(&viewer_username);
 
     let Ok(user) =
@@ -29,56 +32,69 @@ pub async fn get_user_info(
         return Response::builder()
             .status(StatusCode::NOT_FOUND)
             .header("content-type", "application/json")
-            .body(Body::from(json!({ "error": "User not found" }).to_string()))
+            .body(Body::from(
+                serde_json::to_string(&ErrorResponse {
+                    error: "User not found".to_string(),
+                })
+                .unwrap(),
+            ))
             .unwrap();
     };
 
     Response::builder()
         .status(StatusCode::OK)
         .header("content-type", "application/json")
-        .body(Body::from(json!(user).to_string()))
+        .body(Body::from(serde_json::to_string(&user).unwrap()))
         .unwrap()
 }
 
 pub async fn follow_user_action(
     State(api_state): State<FlagDriveAPIState>,
     Path(target_username): Path<String>,
-    Json(payload): Json<Value>,
+    Json(payload): Json<FollowRequest>,
 ) -> Response {
-    let token = payload.get("token").and_then(|v| v.as_str()).unwrap_or("");
-    let is_bot = payload
-        .get("bot")
-        .and_then(|v| v.as_bool())
-        .unwrap_or(false);
-    let followee = payload
-        .get("username")
-        .and_then(|v| v.as_str())
-        .unwrap_or("");
+    let token = &payload.token;
+    let followee = &payload.username;
 
     if token.is_empty() || followee.is_empty() {
         return Response::builder()
             .status(StatusCode::BAD_REQUEST)
             .header("content-type", "application/json")
             .body(Body::from(
-                json!({ "error": "Token and username are required" }).to_string(),
+                serde_json::to_string(&ErrorResponse {
+                    error: "Token and username are required".to_string(),
+                })
+                .unwrap(),
             ))
             .unwrap();
     }
 
-    let Ok(username_from_token) = get_username_from_token(&api_state.pool, token).await else {
+    let auth_token: AuthToken = token.parse().unwrap_or_default();
+
+    let Ok(username_from_token) =
+        get_username_from_token(&api_state.pool, &auth_token.get_token()).await
+    else {
         return Response::builder()
             .status(StatusCode::UNAUTHORIZED)
             .header("content-type", "application/json")
-            .body(Body::from(json!({ "error": "Invalid token" }).to_string()))
+            .body(Body::from(
+                serde_json::to_string(&ErrorResponse {
+                    error: "Invalid token".to_string(),
+                })
+                .unwrap(),
+            ))
             .unwrap();
     };
 
-    if !is_bot && username_from_token != target_username {
+    if !auth_token.is_api_token() && username_from_token != target_username {
         return Response::builder()
             .status(StatusCode::FORBIDDEN)
             .header("content-type", "application/json")
             .body(Body::from(
-                json!({ "error": "Unauthorized action" }).to_string(),
+                serde_json::to_string(&ErrorResponse {
+                    error: "Unauthorized action".to_string(),
+                })
+                .unwrap(),
             ))
             .unwrap();
     }
@@ -91,17 +107,23 @@ pub async fn follow_user_action(
             .status(StatusCode::NOT_FOUND)
             .header("content-type", "application/json")
             .body(Body::from(
-                json!({ "error": "User to follow not found" }).to_string(),
+                serde_json::to_string(&ErrorResponse {
+                    error: "User to follow not found".to_string(),
+                })
+                .unwrap(),
             ))
             .unwrap();
     }
 
-    if target_username == followee {
+    if target_username == *followee {
         return Response::builder()
             .status(StatusCode::BAD_REQUEST)
             .header("content-type", "application/json")
             .body(Body::from(
-                json!({ "error": "You cannot follow yourself" }).to_string(),
+                serde_json::to_string(&ErrorResponse {
+                    error: "You cannot follow yourself".to_string(),
+                })
+                .unwrap(),
             ))
             .unwrap();
     }
@@ -112,7 +134,10 @@ pub async fn follow_user_action(
                 .status(StatusCode::BAD_REQUEST)
                 .header("content-type", "application/json")
                 .body(Body::from(
-                    json!({ "error": format!("You already follow {}", followee) }).to_string(),
+                    serde_json::to_string(&ErrorResponse {
+                        error: format!("You already follow {}", followee),
+                    })
+                    .unwrap(),
                 ))
                 .unwrap();
         }
@@ -121,7 +146,10 @@ pub async fn follow_user_action(
                 .status(StatusCode::INTERNAL_SERVER_ERROR)
                 .header("content-type", "application/json")
                 .body(Body::from(
-                    json!({ "error": "Database error checking relationship" }).to_string(),
+                    serde_json::to_string(&ErrorResponse {
+                        error: "Database error checking relationship".to_string(),
+                    })
+                    .unwrap(),
                 ))
                 .unwrap();
         }
@@ -136,7 +164,10 @@ pub async fn follow_user_action(
             .status(StatusCode::INTERNAL_SERVER_ERROR)
             .header("content-type", "application/json")
             .body(Body::from(
-                json!({ "error": "Failed to follow user" }).to_string(),
+                serde_json::to_string(&ErrorResponse {
+                    error: "Failed to follow user".to_string(),
+                })
+                .unwrap(),
             ))
             .unwrap();
     }
@@ -144,49 +175,63 @@ pub async fn follow_user_action(
     Response::builder()
         .status(StatusCode::OK)
         .header("content-type", "application/json")
-        .body(Body::from(json!({ "status": "success", "message": format!("You are now following {}", followee) }).to_string()))
+        .body(Body::from(
+            serde_json::to_string(&FollowResponse {
+                status: "success".to_string(),
+                message: format!("You are now following {}", followee),
+            })
+            .unwrap(),
+        ))
         .unwrap()
 }
 
 pub async fn unfollow_user_action(
     State(api_state): State<FlagDriveAPIState>,
     Path(target_username): Path<String>,
-    Json(payload): Json<Value>,
+    Json(payload): Json<FollowRequest>,
 ) -> Response {
-    let token = payload.get("token").and_then(|v| v.as_str()).unwrap_or("");
-    let is_bot = payload
-        .get("bot")
-        .and_then(|v| v.as_bool())
-        .unwrap_or(false);
-    let followee = payload
-        .get("username")
-        .and_then(|v| v.as_str())
-        .unwrap_or("");
+    let token = &payload.token;
+    let followee = &payload.username;
 
     if token.is_empty() || followee.is_empty() {
         return Response::builder()
             .status(StatusCode::BAD_REQUEST)
             .header("content-type", "application/json")
             .body(Body::from(
-                json!({ "error": "Token and username are required" }).to_string(),
+                serde_json::to_string(&ErrorResponse {
+                    error: "Token and username are required".to_string(),
+                })
+                .unwrap(),
             ))
             .unwrap();
     }
 
-    let Ok(username_from_token) = get_username_from_token(&api_state.pool, token).await else {
+    let auth_token: AuthToken = token.parse().unwrap_or_default();
+
+    let Ok(username_from_token) =
+        get_username_from_token(&api_state.pool, &auth_token.get_token()).await
+    else {
         return Response::builder()
             .status(StatusCode::UNAUTHORIZED)
             .header("content-type", "application/json")
-            .body(Body::from(json!({ "error": "Invalid token" }).to_string()))
+            .body(Body::from(
+                serde_json::to_string(&ErrorResponse {
+                    error: "Invalid token".to_string(),
+                })
+                .unwrap(),
+            ))
             .unwrap();
     };
 
-    if !is_bot && username_from_token != target_username {
+    if !auth_token.is_api_token() && username_from_token != target_username {
         return Response::builder()
             .status(StatusCode::FORBIDDEN)
             .header("content-type", "application/json")
             .body(Body::from(
-                json!({ "error": "Unauthorized action" }).to_string(),
+                serde_json::to_string(&ErrorResponse {
+                    error: "Unauthorized action".to_string(),
+                })
+                .unwrap(),
             ))
             .unwrap();
     }
@@ -197,7 +242,10 @@ pub async fn unfollow_user_action(
                 .status(StatusCode::BAD_REQUEST)
                 .header("content-type", "application/json")
                 .body(Body::from(
-                    json!({ "error": format!("You do not follow {}", followee) }).to_string(),
+                    serde_json::to_string(&ErrorResponse {
+                        error: format!("You do not follow {}", followee),
+                    })
+                    .unwrap(),
                 ))
                 .unwrap();
         }
@@ -206,7 +254,10 @@ pub async fn unfollow_user_action(
                 .status(StatusCode::INTERNAL_SERVER_ERROR)
                 .header("content-type", "application/json")
                 .body(Body::from(
-                    json!({ "error": "Database error checking relationship" }).to_string(),
+                    serde_json::to_string(&ErrorResponse {
+                        error: "Database error checking relationship".to_string(),
+                    })
+                    .unwrap(),
                 ))
                 .unwrap();
         }
@@ -221,7 +272,10 @@ pub async fn unfollow_user_action(
             .status(StatusCode::INTERNAL_SERVER_ERROR)
             .header("content-type", "application/json")
             .body(Body::from(
-                json!({ "error": "Failed to unfollow user" }).to_string(),
+                serde_json::to_string(&ErrorResponse {
+                    error: "Failed to unfollow user".to_string(),
+                })
+                .unwrap(),
             ))
             .unwrap();
     }
@@ -230,8 +284,11 @@ pub async fn unfollow_user_action(
         .status(StatusCode::OK)
         .header("content-type", "application/json")
         .body(Body::from(
-            json!({ "status": "success", "message": format!("You have unfollowed {}", followee) })
-                .to_string(),
+            serde_json::to_string(&FollowResponse {
+                status: "success".to_string(),
+                message: format!("You have unfollowed {}", followee),
+            })
+            .unwrap(),
         ))
         .unwrap()
 }
@@ -245,7 +302,10 @@ pub async fn get_followers_action(
             .status(StatusCode::INTERNAL_SERVER_ERROR)
             .header("content-type", "application/json")
             .body(Body::from(
-                json!({ "error": "Database error retrieving followers" }).to_string(),
+                serde_json::to_string(&ErrorResponse {
+                    error: "Database error retrieving followers".to_string(),
+                })
+                .unwrap(),
             ))
             .unwrap();
     };
@@ -253,7 +313,9 @@ pub async fn get_followers_action(
     Response::builder()
         .status(StatusCode::OK)
         .header("content-type", "application/json")
-        .body(Body::from(json!({ "followers": followers }).to_string()))
+        .body(Body::from(
+            serde_json::to_string(&FollowersResponse { followers }).unwrap(),
+        ))
         .unwrap()
 }
 
@@ -266,7 +328,10 @@ pub async fn get_following_action(
             .status(StatusCode::INTERNAL_SERVER_ERROR)
             .header("content-type", "application/json")
             .body(Body::from(
-                json!({ "error": "Database error retrieving following list" }).to_string(),
+                serde_json::to_string(&ErrorResponse {
+                    error: "Database error retrieving following list".to_string(),
+                })
+                .unwrap(),
             ))
             .unwrap();
     };
@@ -274,6 +339,8 @@ pub async fn get_following_action(
     Response::builder()
         .status(StatusCode::OK)
         .header("content-type", "application/json")
-        .body(Body::from(json!({ "following": following }).to_string()))
+        .body(Body::from(
+            serde_json::to_string(&FollowingResponse { following }).unwrap(),
+        ))
         .unwrap()
 }

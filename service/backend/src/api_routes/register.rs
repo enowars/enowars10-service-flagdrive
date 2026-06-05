@@ -2,27 +2,24 @@ use crate::FlagDriveAPIState;
 use crate::database::{create_new_token, create_new_user};
 use axum::{Json, body::Body, extract::State, http::StatusCode, response::Response};
 use rand::prelude::*;
-use serde_json::{Value, json};
+use flagdrive_shared::{AuthRequest, AuthResponse, ErrorResponse};
 
 pub async fn register_new_user(
     State(api_state): State<FlagDriveAPIState>,
-    Json(payload): Json<Value>,
+    Json(payload): Json<AuthRequest>,
 ) -> Response {
-    let username = payload
-        .get("username")
-        .and_then(|v| v.as_str())
-        .unwrap_or("");
-    let password = payload
-        .get("password")
-        .and_then(|v| v.as_str())
-        .unwrap_or("");
+    let username = payload.username.trim();
+    let password = payload.password.trim();
 
     if username.is_empty() || password.is_empty() {
         return Response::builder()
             .status(StatusCode::BAD_REQUEST)
             .header("content-type", "application/json")
             .body(Body::from(
-                json!({ "error": "Username and password are required" }).to_string(),
+                serde_json::to_string(&ErrorResponse {
+                    error: "Username and password are required".to_string(),
+                })
+                .unwrap(),
             ))
             .unwrap();
     }
@@ -41,7 +38,10 @@ pub async fn register_new_user(
             .status(StatusCode::CONFLICT)
             .header("content-type", "application/json")
             .body(Body::from(
-                json!({ "error": "User already exists" }).to_string(),
+                serde_json::to_string(&ErrorResponse {
+                    error: "User already exists".to_string(),
+                })
+                .unwrap(),
             ))
             .unwrap();
     }
@@ -51,7 +51,10 @@ pub async fn register_new_user(
             .status(StatusCode::INTERNAL_SERVER_ERROR)
             .header("content-type", "application/json")
             .body(Body::from(
-                json!({ "error": "Failed to generate secure session token" }).to_string(),
+                serde_json::to_string(&ErrorResponse {
+                    error: "Failed to generate secure session token".to_string(),
+                })
+                .unwrap(),
             ))
             .unwrap();
     };
@@ -60,7 +63,12 @@ pub async fn register_new_user(
         .status(StatusCode::CREATED)
         .header("content-type", "application/json")
         .body(Body::from(
-            json!({ "token": token, "username": username }).to_string(),
+            serde_json::to_string(&AuthResponse {
+                token,
+                username: username.to_string(),
+            })
+            .unwrap(),
         ))
         .unwrap()
 }
+

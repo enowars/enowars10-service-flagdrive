@@ -12,26 +12,27 @@ use axum::{
     http::StatusCode,
     response::Response,
 };
+use flagdrive_shared::{ErrorResponse, GdprExportData, GdprRequest, GdprRequestResponse};
 use rand::prelude::*;
-use serde_json::{Value, json};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 pub async fn gdpr_request_user_data(
     State(api_state): State<FlagDriveAPIState>,
-    Json(payload): Json<Value>,
+    Json(payload): Json<GdprRequest>,
 ) -> Response {
-    let token = match payload.get("token").and_then(|v| v.as_str()) {
-        Some(t) if !t.is_empty() => t,
-        _ => {
-            return Response::builder()
-                .status(StatusCode::BAD_REQUEST)
-                .header("content-type", "application/json")
-                .body(Body::from(
-                    json!({ "error": "Token is required" }).to_string(),
-                ))
-                .unwrap();
-        }
-    };
+    let token = &payload.token;
+    if token.is_empty() {
+        return Response::builder()
+            .status(StatusCode::BAD_REQUEST)
+            .header("content-type", "application/json")
+            .body(Body::from(
+                serde_json::to_string(&ErrorResponse {
+                    error: "Token is required".to_string(),
+                })
+                .unwrap(),
+            ))
+            .unwrap();
+    }
 
     let username = match get_username_from_token(&api_state.pool, token).await {
         Ok(name) => name,
@@ -39,7 +40,12 @@ pub async fn gdpr_request_user_data(
             return Response::builder()
                 .status(StatusCode::UNAUTHORIZED)
                 .header("content-type", "application/json")
-                .body(Body::from(json!({ "error": "Invalid token" }).to_string()))
+                .body(Body::from(
+                    serde_json::to_string(&ErrorResponse {
+                        error: "Invalid token".to_string(),
+                    })
+                    .unwrap(),
+                ))
                 .unwrap();
         }
     };
@@ -61,12 +67,12 @@ pub async fn gdpr_request_user_data(
         .map(|f| f.name)
         .collect();
 
-    let content_str = json!({
-        "exported_at": timestamp,
-        "username": &username,
-        "files": filenames
+    let content_str = serde_json::to_string(&GdprExportData {
+        exported_at: timestamp,
+        username: username.clone(),
+        files: filenames,
     })
-    .to_string();
+    .unwrap();
 
     let gdpr_id = format!("{}-{}-{}", &username, timestamp, &nonce);
 
@@ -84,7 +90,10 @@ pub async fn gdpr_request_user_data(
             .status(StatusCode::INTERNAL_SERVER_ERROR)
             .header("content-type", "application/json")
             .body(Body::from(
-                json!({ "error": "Failed to store GDPR request in database" }).to_string(),
+                serde_json::to_string(&ErrorResponse {
+                    error: "Failed to store GDPR request in database".to_string(),
+                })
+                .unwrap(),
             ))
             .unwrap();
     }
@@ -92,7 +101,9 @@ pub async fn gdpr_request_user_data(
     Response::builder()
         .status(StatusCode::OK)
         .header("content-type", "application/json")
-        .body(Body::from(json!({ "gdpr_id": gdpr_id }).to_string()))
+        .body(Body::from(
+            serde_json::to_string(&GdprRequestResponse { gdpr_id }).unwrap(),
+        ))
         .unwrap()
 }
 
@@ -106,7 +117,10 @@ pub async fn gdpr_download_user_data(
             .status(StatusCode::BAD_REQUEST)
             .header("content-type", "application/json")
             .body(Body::from(
-                json!({ "error": "Invalid GDPR ID format" }).to_string(),
+                serde_json::to_string(&ErrorResponse {
+                    error: "Invalid GDPR ID format".to_string(),
+                })
+                .unwrap(),
             ))
             .unwrap();
     }
@@ -122,22 +136,24 @@ pub async fn gdpr_download_user_data(
         return Response::builder()
             .status(StatusCode::NOT_FOUND)
             .header("content-type", "application/json")
-            .body(Body::from(json!({ "error": "User not found" }).to_string()))
+            .body(Body::from(
+                serde_json::to_string(&ErrorResponse {
+                    error: "User not found".to_string(),
+                })
+                .unwrap(),
+            ))
             .unwrap();
     }
 
-    let chars: Vec<char> = nonce.chars().collect();
-    if chars.is_empty()
-        || chars
-            .iter()
-            .take(chars.len().saturating_sub(1).max(1))
-            .any(|c| !c.is_ascii_hexdigit())
-    {
+    if nonce.is_empty() || !nonce.chars().all(|c| c.is_ascii_hexdigit()) {
         return Response::builder()
             .status(StatusCode::NOT_FOUND)
             .header("content-type", "application/json")
             .body(Body::from(
-                json!({ "error": "Invalid GDPR ID format" }).to_string(),
+                serde_json::to_string(&ErrorResponse {
+                    error: "Invalid GDPR ID format".to_string(),
+                })
+                .unwrap(),
             ))
             .unwrap();
     }
@@ -149,7 +165,10 @@ pub async fn gdpr_download_user_data(
             .status(StatusCode::NOT_FOUND)
             .header("content-type", "application/json")
             .body(Body::from(
-                json!({ "error": "GDPR export request not found or expired" }).to_string(),
+                serde_json::to_string(&ErrorResponse {
+                    error: "GDPR export request not found or expired".to_string(),
+                })
+                .unwrap(),
             ))
             .unwrap();
     };
@@ -164,3 +183,4 @@ pub async fn gdpr_download_user_data(
         .body(Body::from(content_str))
         .unwrap()
 }
+

@@ -26,7 +26,8 @@ WORKDIR /ctf/service
 COPY . .
 
 # Prepare recipe file
-RUN cargo chef prepare --recipe-path /ctf/recipe.json
+RUN cargo chef prepare --recipe-path /ctf/recipe.json > /ctf/chef.log 2>&1 \
+    || (cat /ctf/chef.log && exit 1)
 
 
 # --- COOK-FRONTEND ---
@@ -36,7 +37,8 @@ WORKDIR /ctf/service
 # Cook recipe file
 COPY --from=chef /ctf/recipe.json /ctf/recipe.json
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
-    cargo chef cook --release --package flagdrive-frontend --target wasm32-unknown-unknown --recipe-path /ctf/recipe.json
+    cargo chef cook --release --package flagdrive-frontend --target wasm32-unknown-unknown --recipe-path /ctf/recipe.json > /ctf/chef.log 2>&1 \
+    || (cat /ctf/chef.log && exit 1)
 
 
 # --- COOK-BACKEND ---
@@ -46,7 +48,8 @@ WORKDIR /ctf/service
 # Cook recipe file
 COPY --from=chef /ctf/recipe.json /ctf/recipe.json
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
-    cargo chef cook --release --package flagdrive-backend --recipe-path /ctf/recipe.json
+    cargo chef cook --release --package flagdrive-backend --recipe-path /ctf/recipe.json > /ctf/chef.log 2>&1 \
+    || (cat /ctf/chef.log && exit 1)
 
 
 # --- BUILDER-FRONTEND ---
@@ -61,7 +64,7 @@ COPY backend/Cargo.toml ./backend/
 COPY shared ./shared
 COPY frontend ./frontend
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
-    cd frontend && trunk build --release && cd ..
+    cd frontend && trunk build --release --quiet && cd ..
 
 
 # --- BUILDER-BACKEND ---
@@ -76,7 +79,7 @@ COPY frontend/Cargo.toml ./frontend/
 COPY shared ./shared
 COPY backend ./backend
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
-    cd backend && cargo build --release && cd ..
+    cd backend && cargo build --release --quiet && cd ..
 
 
 # --- DATABASE ---
