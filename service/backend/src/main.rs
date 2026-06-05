@@ -1,7 +1,8 @@
 mod api_routes;
+mod auth;
 mod cli;
-mod database;
 mod crypto;
+mod database;
 
 use api_routes::{
     files::{download_file, get_file_list, upload_file},
@@ -53,7 +54,10 @@ async fn main() {
             "/api/gdpr/download/{user_link}",
             get(gdpr_download_user_data),
         )
-        .route("/api/files/{username}", get(get_file_list).post(get_file_list))
+        .route(
+            "/api/files/{username}",
+            get(get_file_list).post(get_file_list),
+        )
         .route("/api/file/upload", post(upload_file))
         .route(
             "/api/file/download/{file_id}",

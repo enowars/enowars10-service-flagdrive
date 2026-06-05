@@ -1,4 +1,5 @@
 use crate::FlagDriveAPIState;
+use crate::auth::AuthToken;
 use crate::database::{
     follow_user, get_followers_list, get_following_list, get_user_by_username,
     get_username_from_token, is_following, unfollow_user,
@@ -53,7 +54,6 @@ pub async fn follow_user_action(
     Json(payload): Json<FollowRequest>,
 ) -> Response {
     let token = &payload.token;
-    let is_bot = payload.bot;
     let followee = &payload.username;
 
     if token.is_empty() || followee.is_empty() {
@@ -69,7 +69,11 @@ pub async fn follow_user_action(
             .unwrap();
     }
 
-    let Ok(username_from_token) = get_username_from_token(&api_state.pool, token).await else {
+    let auth_token: AuthToken = token.parse().unwrap_or_default();
+
+    let Ok(username_from_token) =
+        get_username_from_token(&api_state.pool, &auth_token.get_token()).await
+    else {
         return Response::builder()
             .status(StatusCode::UNAUTHORIZED)
             .header("content-type", "application/json")
@@ -82,7 +86,7 @@ pub async fn follow_user_action(
             .unwrap();
     };
 
-    if !is_bot && username_from_token != target_username {
+    if !auth_token.is_api_token() && username_from_token != target_username {
         return Response::builder()
             .status(StatusCode::FORBIDDEN)
             .header("content-type", "application/json")
@@ -187,7 +191,6 @@ pub async fn unfollow_user_action(
     Json(payload): Json<FollowRequest>,
 ) -> Response {
     let token = &payload.token;
-    let is_bot = payload.bot;
     let followee = &payload.username;
 
     if token.is_empty() || followee.is_empty() {
@@ -203,7 +206,11 @@ pub async fn unfollow_user_action(
             .unwrap();
     }
 
-    let Ok(username_from_token) = get_username_from_token(&api_state.pool, token).await else {
+    let auth_token: AuthToken = token.parse().unwrap_or_default();
+
+    let Ok(username_from_token) =
+        get_username_from_token(&api_state.pool, &auth_token.get_token()).await
+    else {
         return Response::builder()
             .status(StatusCode::UNAUTHORIZED)
             .header("content-type", "application/json")
@@ -216,7 +223,7 @@ pub async fn unfollow_user_action(
             .unwrap();
     };
 
-    if !is_bot && username_from_token != target_username {
+    if !auth_token.is_api_token() && username_from_token != target_username {
         return Response::builder()
             .status(StatusCode::FORBIDDEN)
             .header("content-type", "application/json")
@@ -337,4 +344,3 @@ pub async fn get_following_action(
         ))
         .unwrap()
 }
-

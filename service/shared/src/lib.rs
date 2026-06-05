@@ -79,8 +79,6 @@ pub struct UserInfoRequest {
 pub struct FollowRequest {
     pub token: String,
     pub username: String,
-    #[serde(default)]
-    pub bot: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -141,4 +139,3 @@ pub struct DownloadRequest {
     #[serde(default)]
     pub decryption_key: Option<String>,
 }
-
