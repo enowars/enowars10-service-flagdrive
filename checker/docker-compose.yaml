@@ -26,7 +26,7 @@ services:
         soft: 4000
         hard: 4000
   flagdirve-mongo:
-    image: mongo
+    image: mongo@sha256:a706cb4e493bcd0262f345b3b0c78732ca0e54301f0d7bbe2b66f26313ce7ccb
     restart: unless-stopped
     volumes:
       - mongo-data:/data/db

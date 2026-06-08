@@ -14,17 +14,11 @@ async def putflag_gdpr_info(
     logger: LoggerAdapter
 ) -> str:
     logger.info(f"Task: {task.method} {task.variant_id}")
-    username: str = "".join(
-        random.choices(string.ascii_uppercase + string.digits, k=12)
-    )
-    password: str = "".join(
-        random.choices(string.ascii_uppercase + string.digits, k=12)
-    )
+    username = "".join(random.choices(string.ascii_uppercase + string.digits, k=12))
+    password = "".join(random.choices(string.ascii_uppercase + string.digits, k=12))
     token = await flag_client.register_user(username, password)
 
-    encryption_key = "".join(
-        random.choices(string.ascii_letters + string.digits, k=32)
-    )
+    encryption_key = "".join(random.choices(string.ascii_letters + string.digits, k=32))
     file_id = await flag_client.upload_file(
         token,
         f"{task.flag}",

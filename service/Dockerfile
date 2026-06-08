@@ -1,5 +1,5 @@
 # --- TOOLCHAIN ---
-FROM rust:1.95.0-slim AS toolchain
+FROM rust@sha256:e14e87345b4d5964ddcc3491d27ee046a0f23820f340c3c1e24da6880141f7c0 AS toolchain
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -88,7 +88,7 @@ WORKDIR /ctf/data
 
 
 # --- FINAL IMAGE ---
-FROM gcr.io/distroless/cc-debian13 AS runtime
+FROM gcr.io/distroless/cc-debian13@sha256:8b5d1db6d2253036a53cb8362d3e3fa82a7caf84c247772c46a023166c64e977 AS runtime
 
 COPY --from=builder-frontend /ctf/service/frontend/dist /ctf/service/dist
 COPY --from=builder-backend /ctf/service/target/release/flagdrive-backend /ctf/service/flagdrive
