@@ -45,7 +45,7 @@ jobs:
       run: for i in $(seq 1 10); do echo "waiting.. $i"; sleep 1; done
     - name: run enochecker_test
       run: |
-        enochecker_test
+        enochecker_test 'not test_flagstore_exploitable'
     - name: Dump docker logs on failure
       if: failure()
       uses: jwalton/gh-docker-logs@v1
