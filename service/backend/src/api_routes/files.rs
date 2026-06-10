@@ -1,5 +1,7 @@
 use crate::FlagDriveAPIState;
-use crate::crypto::{aes_gcm_decrypt, aes_gcm_encrypt};
+use crate::crypto::{
+    aes_gcm_decrypt, aes_gcm_decrypt_no_verify, aes_gcm_encrypt, aes_gcm_verify, construct_iv,
+};
 use crate::database::{
     add_upload_file, get_download_file, get_user_encryption_key, get_user_files,
     get_username_from_token,
@@ -58,9 +60,10 @@ pub async fn upload_file(
 ) -> Response {
     let mut token = String::new();
     let mut name = String::new();
-    let mut encryption_key = String::new();
+    let mut key = String::new();
     let mut visibility = FlagDriveFileVisibility::Private;
     let mut content_bytes = Vec::new();
+    let mut backup = false;
 
     while let Ok(Some(field)) = multipart.next_field().await {
         let name_str = field.name().unwrap_or("").to_string();
@@ -77,8 +80,9 @@ pub async fn upload_file(
                 if let Ok(bytes) = field.bytes().await {
                     if let Ok(payload) = serde_json::from_slice::<UploadMetadata>(&bytes) {
                         token = payload.token;
-                        encryption_key = payload.encryption_key;
+                        key = payload.key.unwrap_or_default();
                         visibility = payload.visibility;
+                        backup = payload.backup.unwrap_or(false);
                     }
                 }
             }
@@ -117,12 +121,65 @@ pub async fn upload_file(
     let user_key = get_user_encryption_key(&api_state.pool, &username)
         .await
         .unwrap_or_default();
-    let encrypted_content = aes_gcm_encrypt(
-        &content_bytes,
-        &user_key,
-        &encryption_key,
-        &api_state.server_key,
-    );
+
+    let (final_content, is_protected) = if backup {
+        if content_bytes.len() < 28 {
+            return Response::builder()
+                .status(StatusCode::BAD_REQUEST)
+                .header("content-type", "application/json")
+                .body(Body::from(
+                    serde_json::to_string(&ErrorResponse {
+                        error: "Invalid backup file: too short".to_string(),
+                    })
+                    .unwrap(),
+                ))
+                .unwrap();
+        }
+
+        let mut provided_iv = [0u8; 12];
+        provided_iv.copy_from_slice(&content_bytes[0..12]);
+        let ct_tag = &content_bytes[12..];
+
+        let constructed_iv = construct_iv(&username);
+
+        if !aes_gcm_verify(
+            ct_tag,
+            &user_key,
+            &key,
+            &api_state.server_key,
+            &constructed_iv,
+        ) {
+            return Response::builder()
+                .status(StatusCode::BAD_REQUEST)
+                .header("content-type", "application/json")
+                .body(Body::from(
+                    serde_json::to_string(&ErrorResponse {
+                        error: "Invalid encryption tag or key".to_string(),
+                    })
+                    .unwrap(),
+                ))
+                .unwrap();
+        }
+
+        let ct = &ct_tag[0..(ct_tag.len() - 16)];
+        let decrypted_plaintext =
+            aes_gcm_decrypt_no_verify(ct, &user_key, &key, &api_state.server_key, &provided_iv);
+
+        let encrypted = aes_gcm_encrypt(
+            &decrypted_plaintext,
+            &user_key,
+            &key,
+            &api_state.server_key,
+            &constructed_iv,
+        );
+
+        (encrypted, if !key.is_empty() { 1 } else { 0 })
+    } else {
+        let iv = construct_iv(&username);
+        let encrypted =
+            aes_gcm_encrypt(&content_bytes, &user_key, &key, &api_state.server_key, &iv);
+        (encrypted, if !key.is_empty() { 1 } else { 0 })
+    };
 
     if let Err(err) = add_upload_file(
         &api_state.pool,
@@ -130,8 +187,9 @@ pub async fn upload_file(
         &name,
         &username,
         visibility.to_int(),
-        &encrypted_content,
-        &encryption_key,
+        &final_content,
+        &key,
+        is_protected,
     )
     .await
     {
@@ -162,9 +220,10 @@ pub async fn download_file(
     Json(payload): Json<DownloadRequest>,
 ) -> Response {
     let token = &payload.token;
-    let decryption_key = payload.decryption_key.as_deref();
+    let key = payload.key.as_deref().unwrap_or("");
+    let backup = payload.backup.unwrap_or(false);
 
-    let Ok((file, content, real_enc_key)) =
+    let Ok((file, content, real_protection_key)) =
         get_download_file(&api_state.pool, file_id as i64).await
     else {
         return Response::builder()
@@ -211,6 +270,12 @@ pub async fn download_file(
                     .unwrap();
             }
         }
+    } else {
+        if !token.is_empty() {
+            if let Ok(u) = get_username_from_token(&api_state.pool, token).await {
+                username = u;
+            }
+        }
     }
 
     let has_access = is_public
@@ -232,30 +297,49 @@ pub async fn download_file(
             .unwrap();
     }
 
-    if let Some(dec_key) = decryption_key {
-        if !real_enc_key.is_empty() && dec_key != real_enc_key {
-            return Response::builder()
-                .status(StatusCode::FORBIDDEN)
-                .header("content-type", "application/json")
-                .body(Body::from(
-                    serde_json::to_string(&ErrorResponse {
-                        error: "Invalid decryption key".to_string(),
-                    })
-                    .unwrap(),
-                ))
-                .unwrap();
+    let returned_content = if backup {
+        let mut iv_and_content = construct_iv(&file.owner).to_vec();
+        iv_and_content.extend_from_slice(&content);
+        iv_and_content
+    } else {
+        if file.is_protected {
+            if key != real_protection_key {
+                return Response::builder()
+                    .status(StatusCode::FORBIDDEN)
+                    .header("content-type", "application/json")
+                    .body(Body::from(
+                        serde_json::to_string(&ErrorResponse {
+                            error: "Invalid decryption key".to_string(),
+                        })
+                        .unwrap(),
+                    ))
+                    .unwrap();
+            }
         }
-    }
 
-    let returned_content = if let Some(dec_key) = decryption_key {
         let user_key = get_user_encryption_key(&api_state.pool, &file.owner)
             .await
             .unwrap_or_default();
-        aes_gcm_decrypt(&content, &user_key, dec_key, &api_state.server_key)
-    } else {
-        content.clone()
-    };
 
+        let decrypt_key = if file.is_protected { key } else { "" };
+        let iv = construct_iv(&file.owner);
+
+        match aes_gcm_decrypt(&content, &user_key, decrypt_key, &api_state.server_key, &iv) {
+            Ok(decrypted) => decrypted,
+            Err(_) => {
+                return Response::builder()
+                    .status(StatusCode::INTERNAL_SERVER_ERROR)
+                    .header("content-type", "application/json")
+                    .body(Body::from(
+                        serde_json::to_string(&ErrorResponse {
+                            error: "Failed to decrypt file".to_string(),
+                        })
+                        .unwrap(),
+                    ))
+                    .unwrap();
+            }
+        }
+    };
 
     let content_disposition = format!("attachment; filename=\"{}\"", file.name);
 

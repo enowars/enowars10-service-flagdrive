@@ -42,8 +42,8 @@ where
             <div class="flex justify-between items-start mb-4 mt-2">
                 <div class="flex-1 min-w-0 pr-4">
                     <h3 class="text-lg font-bold text-neutral-900 dark:text-white truncate group-hover:text-gov-red transition-colors flex items-center">
-                        <span class="material-icons mr-2 text-neutral-400 group-hover:text-gov-red" title=if file.is_encrypted { "End-to-End Encrypted" } else { "" }>
-                            {if file.is_encrypted { "lock" } else { "description" }}
+                        <span class="material-icons mr-2 text-neutral-400 group-hover:text-gov-red" title=if file.is_protected { "Protected" } else { "" }>
+                            {if file.is_protected { "lock" } else { "description" }}
                         </span>
                         {file.name.clone()}
                     </h3>

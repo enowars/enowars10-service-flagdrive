@@ -289,7 +289,7 @@ pub async fn get_user_files(
     let viewer_str = viewer.unwrap_or("");
 
     let rows = sqlx::query(
-        "SELECT id, name, owner, visibility, size, created_at, encryption_key FROM files \
+        "SELECT id, name, owner, visibility, size, created_at, protection_key, is_protected FROM files \
          WHERE ( \
              owner = $1 \
              OR (owner IN (SELECT followee FROM follows WHERE follower = $1) AND (visibility = 1 OR visibility = 3)) \
@@ -321,7 +321,7 @@ pub async fn get_user_files(
             },
             size: row.get::<i64, _>("size") as u64,
             created_at: row.get::<i64, _>("created_at") as u64,
-            is_encrypted: !row.get::<String, _>("encryption_key").is_empty(),
+            is_protected: row.get::<i64, _>("is_protected") != 0,
         })
         .collect();
 
@@ -335,7 +335,8 @@ pub async fn add_upload_file(
     owner: &str,
     visibility: i32,
     content: &[u8],
-    encryption_key: &str,
+    protection_key: &str,
+    is_protected: i32,
 ) -> Result<(), sqlx::Error> {
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -345,8 +346,8 @@ pub async fn add_upload_file(
     let size = content.len();
 
     sqlx::query(
-        "INSERT INTO files (id, name, owner, visibility, size, content, created_at, encryption_key) \
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO files (id, name, owner, visibility, size, content, created_at, protection_key, is_protected) \
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
     )
     .bind(id)
     .bind(name)
@@ -355,7 +356,8 @@ pub async fn add_upload_file(
     .bind(size as i64)
     .bind(content)
     .bind(now as i64)
-    .bind(encryption_key)
+    .bind(protection_key)
+    .bind(is_protected)
     .execute(pool)
     .await?;
 
@@ -367,7 +369,7 @@ pub async fn get_download_file(
     id: i64,
 ) -> Result<(FlagDriveFile, Vec<u8>, String), sqlx::Error> {
     let row = sqlx::query(
-        "SELECT id, name, owner, visibility, size, content, created_at, encryption_key FROM files \
+        "SELECT id, name, owner, visibility, size, content, created_at, protection_key, is_protected FROM files \
          WHERE id = ?",
     )
     .bind(id)
@@ -387,10 +389,10 @@ pub async fn get_download_file(
             },
             size: row.get::<i64, _>("size") as u64,
             created_at: row.get::<i64, _>("created_at") as u64,
-            is_encrypted: !row.get::<String, _>("encryption_key").is_empty(),
+            is_protected: row.get::<i64, _>("is_protected") != 0,
         },
         row.get("content"),
-        row.get("encryption_key"),
+        row.get("protection_key"),
     ))
 }
 

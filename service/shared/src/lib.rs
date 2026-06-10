@@ -27,7 +27,8 @@ pub struct FlagDriveFile {
     pub visibility: FlagDriveFileVisibility,
     pub size: u64,
     pub created_at: u64,
-    pub is_encrypted: bool,
+    #[serde(rename = "protected")]
+    pub is_protected: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -123,8 +124,11 @@ pub struct FileListRequest {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct UploadMetadata {
     pub token: String,
-    pub encryption_key: String,
+    #[serde(default)]
+    pub key: Option<String>,
     pub visibility: FlagDriveFileVisibility,
+    #[serde(default)]
+    pub backup: Option<bool>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -137,5 +141,7 @@ pub struct DownloadRequest {
     #[serde(default)]
     pub token: String,
     #[serde(default)]
-    pub decryption_key: Option<String>,
+    pub key: Option<String>,
+    #[serde(default)]
+    pub backup: Option<bool>,
 }

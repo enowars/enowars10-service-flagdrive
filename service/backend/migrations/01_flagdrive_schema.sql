@@ -26,7 +26,8 @@ CREATE TABLE IF NOT EXISTS files (
     size INTEGER NOT NULL,
     content BLOB NOT NULL,
     created_at INTEGER NOT NULL,
-    encryption_key TEXT NOT NULL,
+    protection_key TEXT NOT NULL,
+    is_protected INTEGER NOT NULL DEFAULT 0,
     FOREIGN KEY (owner) REFERENCES users (username) ON DELETE CASCADE
 );
 

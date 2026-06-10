@@ -30,8 +30,8 @@ async def test_0(
     logger.info(f"Service info: {content}")
 
 
-import exploit
-from flagstores import flagstore_0, flagstore_1
+from exploit import exploit_0, exploit_1, exploit_2
+from flagstores import flagstore_0, flagstore_1, flagstore_2
 from noise import noise_0
 from havoc import havoc_0
 

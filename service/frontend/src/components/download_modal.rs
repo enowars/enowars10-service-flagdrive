@@ -18,7 +18,8 @@ pub fn DownloadModal(target: RwSignal<Option<FlagDriveFile>>) -> impl IntoView {
             async move {
                 let json_payload = serde_json::to_string(&DownloadRequest {
                     token,
-                    decryption_key: Some(dec_key),
+                    key: Some(dec_key),
+                    backup: None,
                 })
                 .unwrap();
 
@@ -76,7 +77,7 @@ pub fn DownloadModal(target: RwSignal<Option<FlagDriveFile>>) -> impl IntoView {
         if let Some(file) = target.get() {
             download_action.value().set(None);
             decryption_key.set(String::new());
-            if !file.is_encrypted {
+            if !file.is_protected {
                 download_action.dispatch((file, String::new()));
             }
         }
@@ -92,7 +93,7 @@ pub fn DownloadModal(target: RwSignal<Option<FlagDriveFile>>) -> impl IntoView {
 
     view! {
         {move || if let Some(file) = target.get() {
-            if file.is_encrypted {
+            if file.is_protected {
                 view! {
                     <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-neutral-900/60 backdrop-blur-sm">
                         <div class="bg-white dark:bg-gov-surface-dark rounded-2xl shadow-2xl w-full max-w-sm border border-neutral-200 dark:border-neutral-700 overflow-hidden flex flex-col">

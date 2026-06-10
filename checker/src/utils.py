@@ -135,9 +135,11 @@ class FlagDriveClient:
         filename: str,
         file_content: bytes,
         encryption_key: str,
-        visibility: int | str
+        visibility: int | str,
+        backup: bool = False
     ) -> int:
-        self.logger.info(f"Uploading file: {filename} with visibility: {visibility}")
+        self.logger.info(f"Uploading file: {filename} with visibility: {visibility} (backup: {backup})")
+        self.logger.info(f"File password: {encryption_key}")
         
         if isinstance(visibility, int):
             visibility_map = {
@@ -150,8 +152,9 @@ class FlagDriveClient:
 
         metadata = {
             "token": token,
-            "encryption_key": encryption_key,
-            "visibility": visibility
+            "key": encryption_key,
+            "visibility": visibility,
+            "backup": backup
         }
         files = {
             "file": (filename, file_content, "application/octet-stream"),
@@ -167,11 +170,12 @@ class FlagDriveClient:
             raise MumbleException("File ID missing from upload response")
         return file_id
 
-    async def download_file(self, file_id: int, token: str, decryption_key: str) -> bytes:
-        self.logger.info(f"Retrieving flag for file ID: {file_id}")
+    async def download_file(self, file_id: int, token: str, decryption_key: str, backup: bool = False) -> bytes:
+        self.logger.info(f"Retrieving flag for file ID: {file_id} (backup: {backup})")
         payload = {
             "token": token,
-            "decryption_key": decryption_key
+            "key": decryption_key,
+            "backup": backup
         }
         response = await self.http_client.post(f"/api/file/download/{file_id}", json=payload)
         if response.status_code != 200:

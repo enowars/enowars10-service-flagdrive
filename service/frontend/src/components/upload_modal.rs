@@ -78,8 +78,9 @@ where
 
                 let json_payload = serde_json::to_string(&flagdrive_shared::UploadMetadata {
                     token,
-                    encryption_key: enc_key,
+                    key: if enc_key.is_empty() { None } else { Some(enc_key) },
                     visibility: vis,
+                    backup: None,
                 })
                 .unwrap();
 
@@ -162,10 +163,10 @@ where
                                 <option value="Public">"Public (Everyone)"</option>
                             </select>
 
-                            <label class="block text-sm font-bold text-neutral-700 dark:text-neutral-300 mb-2">"Encryption Key (Optional)"</label>
+                            <label class="block text-sm font-bold text-neutral-700 dark:text-neutral-300 mb-2">"Protection Password (Optional)"</label>
                             <input
                                 type="password"
-                                placeholder="Leave blank for unencrypted"
+                                placeholder="Leave blank for unprotected"
                                 class="w-full mb-6 px-4 py-3 bg-neutral-50 dark:bg-gov-bg-dark border border-neutral-300 dark:border-neutral-600 rounded-lg focus:outline-none focus:border-gov-red focus:ring-1 focus:ring-gov-red text-neutral-900 dark:text-white transition-all"
                                 on:input=move |ev| encryption_key.set(event_target_value(&ev))
                             />
