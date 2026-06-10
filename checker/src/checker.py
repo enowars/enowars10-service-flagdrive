@@ -30,10 +30,13 @@ async def test_0(
     logger.info(f"Service info: {content}")
 
 
-from exploit import exploit_0, exploit_1, exploit_2
-from flagstores import flagstore_0, flagstore_1, flagstore_2
-from noise import noise_0
-from havoc import havoc_0
+import importlib
+import pkgutil
+
+for module_name in ["exploit", "flagstores", "noise", "havoc"]:
+    module = importlib.import_module(module_name)
+    for _, name, _ in pkgutil.iter_modules(module.__path__):
+        importlib.import_module(f"{module_name}.{name}")
 
 if __name__ == "__main__":
     checker.run()

@@ -1,13 +1,12 @@
-from enochecker3 import MumbleException
 import random
 import string
 from logging import LoggerAdapter
-from enochecker3 import HavocCheckerTaskMessage
+from enochecker3 import HavocCheckerTaskMessage, MumbleException
 from checker import checker
 from utils import FlagDriveClient
 
-@checker.havoc(0)
-async def havoc_0(
+@checker.havoc(3)
+async def havoc_3(
     task: HavocCheckerTaskMessage,
     logger: LoggerAdapter,
     flag_client: FlagDriveClient
@@ -18,8 +17,12 @@ async def havoc_0(
     password = "".join(random.choices(string.ascii_uppercase + string.digits, k=12))
     token = await flag_client.register_user(username, password)
 
-    await flag_client.verify_token(token)
-    user_info = await flag_client.get_user_info(username)
-    if user_info.get("username") != username:
-        raise MumbleException("User info username mismatch")
-
+    await flag_client.logout_token(token)
+    
+    try:
+        await flag_client.verify_token(token)
+        raise MumbleException("Token is still valid after logout")
+    except MumbleException as e:
+        if "Token is still valid" in str(e):
+            raise
+        pass

@@ -5,8 +5,8 @@ from enochecker3 import ChainDB, PutnoiseCheckerTaskMessage, GetnoiseCheckerTask
 from checker import checker
 from utils import FlagDriveClient
 
-@checker.putnoise(0)
-async def putnoise_0(
+@checker.putnoise(3)
+async def putnoise_3(
     task: PutnoiseCheckerTaskMessage,
     db: ChainDB,
     logger: LoggerAdapter,
@@ -20,8 +20,8 @@ async def putnoise_0(
 
     await db.set("userdata", (username, password, token))
 
-@checker.getnoise(0)
-async def getnoise_0(
+@checker.getnoise(3)
+async def getnoise_3(
     task: GetnoiseCheckerTaskMessage,
     db: ChainDB,
     logger: LoggerAdapter,
@@ -35,11 +35,13 @@ async def getnoise_0(
         logger.info("Missing database entry from putnoise")
         raise MumbleException("Missing database entry from putnoise")
 
-    returned_username = await flag_client.verify_token(token)
-    if returned_username != username:
-        raise MumbleException("Token verified to wrong username")
+    new_token = await flag_client.login_user(username, password)
+    await flag_client.logout_token(new_token)
 
-    user_info = await flag_client.get_user_info(username)
-    if user_info.get("username") != username:
-        raise MumbleException("User info username mismatch")
-
+    try:
+        await flag_client.verify_token(new_token)
+        raise MumbleException("Token is still valid after logout")
+    except MumbleException as e:
+        if "Token is still valid" in str(e):
+            raise
+        pass

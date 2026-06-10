@@ -108,7 +108,7 @@ class FlagDriveClient:
         if response.status_code != 200:
             self.logger.error(f"Get followers failed: {response.text}")
             raise MumbleException("Failed to get followers list")
-        return response.json()
+        return response.json().get("followers", [])
 
     async def get_following(self, username: str) -> list:
         self.logger.info(f"Getting following list for: {username}")
@@ -116,7 +116,7 @@ class FlagDriveClient:
         if response.status_code != 200:
             self.logger.error(f"Get following failed: {response.text}")
             raise MumbleException("Failed to get following list")
-        return response.json()
+        return response.json().get("following", [])
 
     async def get_file_list(self, username: str, token: str = "") -> list:
         self.logger.info(f"Getting file list for user: {username}")
@@ -137,7 +137,7 @@ class FlagDriveClient:
         encryption_key: str,
         visibility: int | str,
         backup: bool = False
-    ) -> int:
+    ) -> str:
         self.logger.info(f"Uploading file: {filename} with visibility: {visibility} (backup: {backup})")
         self.logger.info(f"File password: {encryption_key}")
         
@@ -168,9 +168,9 @@ class FlagDriveClient:
         file_id = data.get("file_id")
         if file_id is None:
             raise MumbleException("File ID missing from upload response")
-        return file_id
+        return str(file_id)
 
-    async def download_file(self, file_id: int, token: str, decryption_key: str, backup: bool = False) -> bytes:
+    async def download_file(self, file_id: str, token: str, decryption_key: str, backup: bool = False) -> bytes:
         self.logger.info(f"Retrieving flag for file ID: {file_id} (backup: {backup})")
         payload = {
             "token": token,
