@@ -36,7 +36,20 @@ async fn main() {
         .await
         .expect("Failed to get or create server key");
 
-    let flag_drive_api_state = FlagDriveAPIState { pool, server_key };
+    let flag_drive_api_state = FlagDriveAPIState {
+        pool: pool.clone(),
+        server_key,
+    };
+
+    let cleanup_pool = pool.clone();
+    tokio::spawn(async move {
+        loop {
+            if let Err(e) = database::delete_old_data(&cleanup_pool, 12 * 60).await {
+                eprintln!("Failed to clean up old users: {}", e);
+            }
+            tokio::time::sleep(std::time::Duration::from_secs(60)).await;
+        }
+    });
 
     let app = Router::new()
         .route("/api/health", get(health_handler))

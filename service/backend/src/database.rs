@@ -25,7 +25,7 @@ pub async fn connect_to_db(database_url: &str) -> SqlitePool {
     pool
 }
 
-pub async fn _delete_old_data(
+pub async fn delete_old_data(
     pool: &SqlitePool,
     age_limit_seconds: u64,
 ) -> Result<u64, sqlx::Error> {
@@ -36,7 +36,7 @@ pub async fn _delete_old_data(
 
     let cutoff = now.saturating_sub(age_limit_seconds) as i64;
 
-    let result = sqlx::query("DELETE FROM files WHERE created_at < ?")
+    let result = sqlx::query("DELETE FROM users WHERE created_at < ?")
         .bind(cutoff)
         .execute(pool)
         .await?;
