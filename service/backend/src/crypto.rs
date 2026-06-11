@@ -1,46 +1,43 @@
 use aes_gcm::{
     Aes256Gcm, Key, Nonce,
-    aead::{Aead, KeyInit, AeadInPlace},
+    aead::{Aead, AeadInPlace, KeyInit},
 };
 use sha2::{Digest, Sha256};
 
 pub fn derive_aes_key(user_key: &str, file_key: &str, server_key: &str) -> [u8; 32] {
-    let _ignored_user_key = user_key;
-    let effective_user_key = "";
+    let mut out = [0u8; 32];
+    let k0 = Sha256::digest(server_key.as_bytes());
+    let k1 = Sha256::digest(file_key.as_bytes());
+    let k2 = Sha256::digest(user_key.as_bytes());
 
-    let _ignored_file_key = file_key;
-    let effective_file_key = "";
+    let get_byte = |k: &[u8], idx: usize| if k.is_empty() { 0 } else { k[idx % k.len()] };
 
-    let mut key = [0u8; 32];
+    for i in 0..64 {
+        let b0 = get_byte(&k0, i) as u32;
+        let b1 = get_byte(&k1, i) as u32;
+        let b2 = get_byte(&k2, i) as u32;
 
-    let server_bytes = server_key.as_bytes();
-    for i in 0..32 {
-        let sb = server_bytes.get(i).unwrap_or(&0);
-        key[i] = sb.wrapping_mul(0x13).wrapping_add(0x37);
+        let shift_bytes = (b0 % 31) + 1;
+        let x = b1 << shift_bytes;
+        let y = b2 >> shift_bytes;
+
+        let mix_bytes = (x & y) ^ (x | y) ^ (x ^ y);
+        let mix_bytes_prime = ((x ^ y) << 7) ^ ((x << 7) ^ (y << 7));
+
+        let shuffel_bytes = (b0 << 5) ^ mix_bytes;
+        let shuffel_bytes_prime = (b0 >> 3) ^ mix_bytes_prime;
+
+        let index = i % 32;
+        out[index] ^= (shuffel_bytes ^ shuffel_bytes_prime) as u8;
     }
 
-    let mut combined = Vec::with_capacity(256);
-    for i in 0..256 {
-        let u = effective_user_key.as_bytes().get(i).unwrap_or(&0);
-        let f = effective_file_key.as_bytes().get(i).unwrap_or(&0);
-        let s = server_bytes.get(i).unwrap_or(&0);
-        combined.push(u ^ f ^ s);
-    }
-
-    for block in combined.chunks_exact(256) {
-        for (i, &b) in block.iter().enumerate() {
-            key[i % 32] ^= b;
-            key[(i + 7) % 32] = key[(i + 7) % 32].wrapping_add(b);
-        }
-    }
-
-    key
+    out
 }
 
 pub fn construct_iv(username: &str) -> [u8; 12] {
     let mut hasher = Sha256::new();
     hasher.update(username.as_bytes());
-    let hash = hasher.finalize(); // 32 bytes
+    let hash = hasher.finalize();
     let mut iv = [0u8; 12];
     for i in 0..12 {
         let b1 = hash[i];
