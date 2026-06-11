@@ -12,7 +12,7 @@ pub fn derive_aes_key(user_key: &str, file_key: &str, server_key: &str) -> [u8; 
 
     let get_byte = |k: &[u8], idx: usize| if k.is_empty() { 0 } else { k[idx % k.len()] };
 
-    for i in 0..64 {
+    for i in 0..32 {
         let b0 = get_byte(&k0, i) as u32;
         let b1 = get_byte(&k1, i) as u32;
         let b2 = get_byte(&k2, i) as u32;
@@ -21,14 +21,14 @@ pub fn derive_aes_key(user_key: &str, file_key: &str, server_key: &str) -> [u8; 
         let x = b1 << shift_bytes;
         let y = b2 >> shift_bytes;
 
-        let mix_bytes = (x & y) ^ (x | y) ^ (x ^ y);
-        let mix_bytes_prime = ((x ^ y) << 7) ^ ((x << 7) ^ (y << 7));
+        let acc1 = (x ^ y).wrapping_add(b0).wrapping_mul(0x9E3779B9);
+        let acc2 = x.wrapping_add(y).wrapping_sub(b0).wrapping_mul(0x85EBCA6B);
 
-        let shuffel_bytes = (b0 << 5) ^ mix_bytes;
-        let shuffel_bytes_prime = (b0 >> 3) ^ mix_bytes_prime;
+        let mix1 = (b0 ^ x.wrapping_mul(y)) ^ ((acc1 as u64) >> 32) as u32;
+        let mix2 = x.wrapping_mul(y) ^ ((acc2 as u64) >> 32) as u32;
 
         let index = i % 32;
-        out[index] ^= (shuffel_bytes ^ shuffel_bytes_prime) as u8;
+        out[index] ^= (mix1 ^ mix2) as u8;
     }
 
     out
