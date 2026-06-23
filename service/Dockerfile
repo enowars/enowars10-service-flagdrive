@@ -38,6 +38,7 @@ WORKDIR /ctf/service
 # Cook recipe file
 COPY --from=chef /ctf/recipe.json /ctf/recipe.json
 RUN --mount=type=cache,id=cargo-registry-frontend,target=/usr/local/cargo/registry \
+    --mount=type=cache,id=cargo-target-frontend,target=/ctf/service/target \
     cargo chef cook --release --package flagdrive-frontend --target wasm32-unknown-unknown --recipe-path /ctf/recipe.json > /ctf/chef.log 2>&1 \
     || (cat /ctf/chef.log && exit 1)
 
@@ -50,6 +51,7 @@ WORKDIR /ctf/service
 # Cook recipe file
 COPY --from=chef /ctf/recipe.json /ctf/recipe.json
 RUN --mount=type=cache,id=cargo-registry-backend,target=/usr/local/cargo/registry \
+    --mount=type=cache,id=cargo-target-backend,target=/ctf/service/target \
     cargo chef cook --release --package flagdrive-backend --recipe-path /ctf/recipe.json > /ctf/chef.log 2>&1 \
     || (cat /ctf/chef.log && exit 1)
 
@@ -59,13 +61,13 @@ FROM toolchain AS builder-frontend
 WORKDIR /ctf/service
 
 # Build frontend
-COPY --from=cook-frontend /ctf/service/target /ctf/service/target
 COPY --from=cook-frontend /ctf/service/backend /ctf/service/backend
 COPY Cargo.toml Cargo.lock ./
 COPY backend/Cargo.toml ./backend/
 COPY shared ./shared
 COPY frontend ./frontend
 RUN --mount=type=cache,id=cargo-registry-frontend,target=/usr/local/cargo/registry \
+    --mount=type=cache,id=cargo-target-frontend,target=/ctf/service/target \
     cd frontend && trunk build --release --quiet && cd ..
 
 
@@ -75,14 +77,15 @@ ENV RUSTFLAGS="-C link-arg=-fuse-ld=mold"
 WORKDIR /ctf/service
 
 # Build backend
-COPY --from=cook-backend /ctf/service/target /ctf/service/target
 COPY --from=cook-backend /ctf/service/frontend /ctf/service/frontend
 COPY Cargo.toml Cargo.lock ./
 COPY frontend/Cargo.toml ./frontend/
 COPY shared ./shared
 COPY backend ./backend
 RUN --mount=type=cache,id=cargo-registry-backend,target=/usr/local/cargo/registry \
-    cd backend && cargo build --release --quiet && cd ..
+    --mount=type=cache,id=cargo-target-backend,target=/ctf/service/target \
+    cd backend && cargo build --release --quiet && \
+    cp /ctf/service/target/release/flagdrive-backend /ctf/service/flagdrive-backend
 
 
 # --- DATABASE ---
@@ -94,7 +97,7 @@ WORKDIR /ctf/data
 FROM gcr.io/distroless/cc-debian13@sha256:8b5d1db6d2253036a53cb8362d3e3fa82a7caf84c247772c46a023166c64e977 AS runtime
 
 COPY --from=builder-frontend /ctf/service/frontend/dist /ctf/service/dist
-COPY --from=builder-backend /ctf/service/target/release/flagdrive-backend /ctf/service/flagdrive
+COPY --from=builder-backend /ctf/service/flagdrive-backend /ctf/service/flagdrive
 COPY --from=database /ctf/data /ctf/data
 
 ENTRYPOINT ["/ctf/service/flagdrive", "--dist", "/ctf/service/dist", "--database", "/ctf/data/flagdrive.db", "--addr", "0.0.0.0:4859"]

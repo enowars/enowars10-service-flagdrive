@@ -1,15 +1,13 @@
+use crate::app::{AppState, Page};
 use flagdrive_shared::TokenRequest;
 use leptos::prelude::*;
-use crate::app::{Page, AppState};
 
 #[component]
 pub fn Navbar() -> impl IntoView {
     let state = expect_context::<AppState>();
     let page = state.page;
 
-    let is_logged_in = move || {
-        state.username.get().is_some()
-    };
+    let is_logged_in = move || state.username.get().is_some();
 
     view! {
         <nav class="sticky top-0 z-50 bg-white dark:bg-gov-bg-dark border-b border-neutral-200 dark:border-neutral-800 shadow-sm transition-colors duration-300">
@@ -52,7 +50,7 @@ pub fn Navbar() -> impl IntoView {
                                                 let headers = web_sys::Headers::new().unwrap();
                                                 headers.append("Content-Type", "application/json").unwrap();
                                                 opts.set_headers(&headers);
-                                                
+
                                                 let payload = serde_json::to_string(&TokenRequest {
                                                     token,
                                                 })

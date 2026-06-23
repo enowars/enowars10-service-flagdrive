@@ -64,4 +64,3 @@ pub async fn login_as_user(
         ))
         .unwrap()
 }
-

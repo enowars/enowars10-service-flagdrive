@@ -183,4 +183,3 @@ pub async fn gdpr_download_user_data(
         .body(Body::from(content_str))
         .unwrap()
 }
-

@@ -1,7 +1,7 @@
+use crate::database::DbPool;
 use flagdrive_shared::{FlagDriveFile, FlagDriveFileVisibility};
 use sqlx::Row;
 use std::time::{SystemTime, UNIX_EPOCH};
-use crate::database::DbPool;
 
 pub async fn get_user_files(
     pool: &DbPool,

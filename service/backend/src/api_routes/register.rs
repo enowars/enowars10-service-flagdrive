@@ -1,8 +1,8 @@
 use crate::FlagDriveAPIState;
 use crate::database::{create_new_token, create_new_user};
 use axum::{Json, body::Body, extract::State, http::StatusCode, response::Response};
-use rand::prelude::*;
 use flagdrive_shared::{AuthRequest, AuthResponse, ErrorResponse};
+use rand::prelude::*;
 
 pub async fn register_new_user(
     State(api_state): State<FlagDriveAPIState>,
@@ -71,4 +71,3 @@ pub async fn register_new_user(
         ))
         .unwrap()
 }
-

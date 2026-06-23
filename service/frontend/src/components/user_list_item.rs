@@ -1,5 +1,5 @@
-use leptos::prelude::*;
 use crate::app::AppState;
+use leptos::prelude::*;
 
 #[component]
 pub fn UserListItem<F, G>(
@@ -7,7 +7,7 @@ pub fn UserListItem<F, G>(
     is_followed: bool,
     on_navigate: F,
     on_toggle: G,
-) -> impl IntoView 
+) -> impl IntoView
 where
     F: Fn(String) + 'static + Send + Sync + Clone,
     G: Fn(String, bool) + 'static + Send + Sync + Clone,
@@ -20,7 +20,9 @@ where
         let user = user.clone();
         move |_| {
             let current = state.username.get();
-            current.map(|name| name.to_lowercase() == user.to_lowercase()).unwrap_or(false)
+            current
+                .map(|name| name.to_lowercase() == user.to_lowercase())
+                .unwrap_or(false)
         }
     });
 
@@ -37,7 +39,7 @@ where
                 let on_toggle_clone = on_toggle.clone();
                 if is_followed {
                     view! {
-                        <button 
+                        <button
                             class="px-3 py-1.5 text-xs font-semibold rounded-md bg-neutral-200 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-300 dark:hover:bg-neutral-700 transition-colors"
                             on:click=move |_| { on_toggle_clone(u_clone1.clone(), true); }
                         >
@@ -46,7 +48,7 @@ where
                     }.into_any()
                 } else {
                     view! {
-                        <button 
+                        <button
                             class="px-3 py-1.5 text-xs font-semibold rounded-md bg-gov-red text-white hover:bg-gov-red-dark transition-colors"
                             on:click=move |_| { on_toggle_clone(u_clone1.clone(), false); }
                         >

@@ -1,8 +1,8 @@
+use crate::database::DbPool;
 use flagdrive_shared::FlagDriveUser;
 use rand::prelude::*;
 use sqlx::Row;
 use std::time::{SystemTime, UNIX_EPOCH};
-use crate::database::DbPool;
 
 pub async fn create_new_user(
     pool: &DbPool,
@@ -161,10 +161,7 @@ pub async fn get_user_by_username(
     }
 }
 
-pub async fn get_username_from_token(
-    pool: &DbPool,
-    token: &str,
-) -> Result<String, sqlx::Error> {
+pub async fn get_username_from_token(pool: &DbPool, token: &str) -> Result<String, sqlx::Error> {
     match pool {
         DbPool::Sqlite(p) => {
             let row = sqlx::query("SELECT username FROM auth_token WHERE token = $1")
@@ -183,10 +180,7 @@ pub async fn get_username_from_token(
     }
 }
 
-pub async fn get_user_encryption_key(
-    pool: &DbPool,
-    username: &str,
-) -> Result<String, sqlx::Error> {
+pub async fn get_user_encryption_key(pool: &DbPool, username: &str) -> Result<String, sqlx::Error> {
     match pool {
         DbPool::Sqlite(p) => {
             let row = sqlx::query("SELECT encryption_key FROM users WHERE username = $1")

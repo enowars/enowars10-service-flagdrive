@@ -35,9 +35,14 @@ async fn main() {
             let host = args.pg_host.unwrap_or_else(|| "localhost".to_string());
             let port = args.pg_port.unwrap_or(5432);
             let user = args.pg_user.unwrap_or_else(|| "flagdrive".to_string());
-            let password = args.pg_password.unwrap_or_else(|| "flagdrivepassword".to_string());
+            let password = args
+                .pg_password
+                .unwrap_or_else(|| "flagdrivepassword".to_string());
             let dbname = args.pg_dbname.unwrap_or_else(|| "flagdrive".to_string());
-            format!("postgres://{}:{}@{}:{}/{}", user, password, host, port, dbname)
+            format!(
+                "postgres://{}:{}@{}:{}/{}",
+                user, password, host, port, dbname
+            )
         } else if args.database.starts_with("postgres://")
             || args.database.starts_with("postgresql://")
             || args.database.starts_with("sqlite://")
@@ -48,8 +53,12 @@ async fn main() {
         }
     });
 
-    let is_postgres = database_url.starts_with("postgres://") || database_url.starts_with("postgresql://");
-    println!("Database type: {}", if is_postgres { "PostgreSQL" } else { "SQLite" });
+    let is_postgres =
+        database_url.starts_with("postgres://") || database_url.starts_with("postgresql://");
+    println!(
+        "Database type: {}",
+        if is_postgres { "PostgreSQL" } else { "SQLite" }
+    );
 
     let pool = database::connect_to_db(&database_url).await;
     let server_key = database::get_or_create_server_key(&pool)

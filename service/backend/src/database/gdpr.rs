@@ -1,5 +1,5 @@
-use sqlx::Row;
 use crate::database::DbPool;
+use sqlx::Row;
 
 pub async fn insert_gdpr_data(
     pool: &DbPool,
