@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     pkg-config \
     libssl-dev \
     curl \
+    mold \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Rust target for Wasm
@@ -43,6 +44,7 @@ RUN --mount=type=cache,id=cargo-registry-frontend,target=/usr/local/cargo/regist
 
 # --- COOK-BACKEND ---
 FROM toolchain AS cook-backend
+ENV RUSTFLAGS="-C link-arg=-fuse-ld=mold"
 WORKDIR /ctf/service
 
 # Cook recipe file
@@ -69,6 +71,7 @@ RUN --mount=type=cache,id=cargo-registry-frontend,target=/usr/local/cargo/regist
 
 # --- BUILDER-BACKEND ---
 FROM toolchain AS builder-backend
+ENV RUSTFLAGS="-C link-arg=-fuse-ld=mold"
 WORKDIR /ctf/service
 
 # Build backend

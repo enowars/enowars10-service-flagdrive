@@ -1,7 +1,20 @@
 import httpx
 from logging import LoggerAdapter
 from enochecker3 import Enochecker
+import enochecker3.telemetry
 from utils import FlagDriveClient
+
+async def clean_request_hook(span, request):
+    span.update_name(f"{request.method.decode()} {request.url}")
+    if request.headers:
+        for k, v in request.headers.items():
+            span.set_attribute(f"http.headers.{k}", v)
+
+async def clean_response_hook(span, request, response):
+    pass
+
+enochecker3.telemetry.async_request_hook = clean_request_hook
+enochecker3.telemetry.async_response_hook = clean_response_hook
 
 """
 Checker config
