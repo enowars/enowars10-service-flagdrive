@@ -4,7 +4,7 @@ use crate::crypto::{
 };
 use crate::database::{
     add_upload_file, get_download_file, get_user_encryption_key, get_user_files,
-    get_username_from_token,
+    get_username_from_token, is_following,
 };
 use axum::{
     Json,
@@ -280,9 +280,19 @@ pub async fn download_file(
 
     let has_access = is_public
         || file.owner == username
-        || get_user_files(&api_state.pool, &username, Some(&username))
-            .await
-            .is_ok_and(|files| files.iter().any(|f| f.id == file.id));
+        || match file.visibility {
+            FlagDriveFileVisibility::Followers => {
+                is_following(&api_state.pool, &username, &file.owner)
+                    .await
+                    .unwrap_or(false)
+            }
+            FlagDriveFileVisibility::Following => {
+                is_following(&api_state.pool, &file.owner, &username)
+                    .await
+                    .unwrap_or(false)
+            }
+            _ => false,
+        };
 
     if !has_access {
         return Response::builder()

@@ -46,3 +46,8 @@ CREATE TABLE IF NOT EXISTS auth_token (
     created_at INTEGER NOT NULL,
     FOREIGN KEY (username) REFERENCES users (username) ON DELETE CASCADE
 );
+
+CREATE INDEX IF NOT EXISTS idx_follows_follower ON follows (follower, followee);
+CREATE INDEX IF NOT EXISTS idx_files_owner ON files (owner, visibility);
+CREATE INDEX IF NOT EXISTS idx_users_created_at ON users (created_at);
+CREATE INDEX IF NOT EXISTS idx_gdpr_username_nonce ON gdpr_data (username, nonce);

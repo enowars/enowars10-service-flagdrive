@@ -12,17 +12,25 @@ pub async fn get_user_files(
 
     let rows = sqlx::query(
         "SELECT id, name, owner, visibility, size, created_at, protection_key, is_protected FROM files \
-         WHERE ( \
-             owner = $1 \
-             OR (owner IN (SELECT followee FROM follows WHERE follower = $1) AND (visibility = 1 OR visibility = 3)) \
-             OR (owner IN (SELECT follower FROM follows WHERE followee = $1) AND visibility = 2) \
-         ) \
-         AND ( \
-             visibility = 1 \
-             OR owner = $2 \
-             OR (owner IN (SELECT followee FROM follows WHERE follower = $2) AND (visibility = 1 OR visibility = 3)) \
-             OR (owner IN (SELECT follower FROM follows WHERE followee = $2) AND visibility = 2) \
-         )"
+         WHERE owner = $1 \
+           AND ( \
+               visibility = 1 \
+               OR $2 = $1 \
+               OR ($2 IN (SELECT follower FROM follows WHERE followee = $1) AND (visibility = 1 OR visibility = 3)) \
+               OR ($2 IN (SELECT followee FROM follows WHERE follower = $1) AND visibility = 2) \
+           ) \
+         UNION ALL \
+         SELECT id, name, owner, visibility, size, created_at, protection_key, is_protected FROM files \
+         WHERE owner IN (SELECT followee FROM follows WHERE follower = $1) \
+           AND ( \
+               visibility = 1 \
+               OR (visibility = 3 AND (owner = $2 OR $2 IN (SELECT follower FROM follows WHERE followee = owner))) \
+           ) \
+         UNION ALL \
+         SELECT id, name, owner, visibility, size, created_at, protection_key, is_protected FROM files \
+         WHERE owner IN (SELECT follower FROM follows WHERE followee = $1) \
+           AND visibility = 2 \
+           AND (owner = $2 OR $2 IN (SELECT followee FROM follows WHERE follower = owner))"
     )
     .bind(username)
     .bind(viewer_str)

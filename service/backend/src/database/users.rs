@@ -73,7 +73,7 @@ pub async fn get_user_by_username(
          username, \
          (SELECT COUNT(*) FROM follows WHERE followee = users.username) as followers_count, \
          (SELECT COUNT(*) FROM follows WHERE follower = users.username) as following_count, \
-         (SELECT COUNT(*) FROM follows WHERE followee = users.username AND follower = ?) as is_followed \
+         (SELECT EXISTS(SELECT 1 FROM follows WHERE followee = users.username AND follower = ?)) as is_followed \
          FROM users WHERE username = ?",
     )
     .bind(viewer_str)
