@@ -71,7 +71,11 @@ pub async fn delete_old_data(pool: &DbPool, age_limit_seconds: u64) -> Result<u6
                 .bind(cutoff)
                 .execute(p)
                 .await?;
-            result.rows_affected()
+            let rows = result.rows_affected();
+            if rows > 0 {
+                let _ = sqlx::query("VACUUM").execute(p).await;
+            }
+            rows
         }
     };
 
