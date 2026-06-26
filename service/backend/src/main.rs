@@ -45,20 +45,14 @@ async fn main() {
             )
         } else if args.database.starts_with("postgres://")
             || args.database.starts_with("postgresql://")
-            || args.database.starts_with("sqlite://")
         {
             args.database.clone()
         } else {
-            format!("sqlite://{}", args.database)
+            "postgres://flagdrive:flagdrivepassword@localhost:5432/flagdrive".to_string()
         }
     });
 
-    let is_postgres =
-        database_url.starts_with("postgres://") || database_url.starts_with("postgresql://");
-    println!(
-        "Database type: {}",
-        if is_postgres { "PostgreSQL" } else { "SQLite" }
-    );
+    println!("Database type: PostgreSQL");
 
     let pool = database::connect_to_db(&database_url).await;
     let server_key = database::get_or_create_server_key(&pool)
@@ -110,9 +104,6 @@ async fn main() {
 
     let listener = tokio::net::TcpListener::bind(&args.addr).await.unwrap();
     println!("Frontend dir: {}", args.dist);
-    if !is_postgres {
-        println!("Database file: {}", args.database);
-    }
     println!("Listening on: http://{}", args.addr);
     axum::serve(listener, app).await.unwrap();
 }
