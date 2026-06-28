@@ -58,12 +58,16 @@ pub fn aes_gcm_encrypt(
     let key_bytes = derive_aes_key(user_key, file_key, server_key);
     let key = Key::<Aes256Gcm>::from_slice(&key_bytes);
     let cipher = Aes256Gcm::new(key);
-
     let nonce = Nonce::from_slice(iv);
 
-    cipher
-        .encrypt(nonce, data)
-        .unwrap_or_else(|_| data.to_vec())
+    let mut buffer = data.to_vec();
+    match cipher.encrypt_in_place_detached(nonce, iv, &mut buffer) {
+        Ok(tag) => {
+            buffer.extend_from_slice(&tag);
+            buffer
+        }
+        Err(_) => data.to_vec(),
+    }
 }
 
 pub fn aes_gcm_decrypt(
@@ -76,20 +80,17 @@ pub fn aes_gcm_decrypt(
     let key_bytes = derive_aes_key(user_key, file_key, server_key);
     let key = Key::<Aes256Gcm>::from_slice(&key_bytes);
     let cipher = Aes256Gcm::new(key);
-
     let nonce = Nonce::from_slice(iv);
 
-    cipher.decrypt(nonce, data)
-}
+    if data.len() < 16 {
+        return Err(aes_gcm::Error);
+    }
 
-pub fn aes_gcm_verify(
-    data: &[u8],
-    user_key: &str,
-    file_key: &str,
-    server_key: &str,
-    iv: &[u8; 12],
-) -> bool {
-    aes_gcm_decrypt(data, user_key, file_key, server_key, iv).is_ok()
+    let mut ct = data[..data.len() - 16].to_vec();
+    let tag = aes_gcm::Tag::from_slice(&data[data.len() - 16..]);
+
+    cipher.decrypt_in_place_detached(nonce, iv, &mut ct, tag)?;
+    Ok(ct)
 }
 
 pub fn aes_gcm_decrypt_no_verify(
@@ -107,4 +108,29 @@ pub fn aes_gcm_decrypt_no_verify(
     let mut buffer = data.to_vec();
     let _ = cipher.encrypt_in_place_detached(nonce, &[], &mut buffer);
     buffer
+}
+
+pub fn aes_gcm_verify_with_aad(
+    data: &[u8],
+    user_key: &str,
+    file_key: &str,
+    server_key: &str,
+    iv: &[u8; 12],
+    aad: &[u8],
+) -> bool {
+    let key_bytes = derive_aes_key(user_key, file_key, server_key);
+    let key = Key::<Aes256Gcm>::from_slice(&key_bytes);
+    let cipher = Aes256Gcm::new(key);
+    let nonce = Nonce::from_slice(iv);
+
+    if data.len() < 16 {
+        return false;
+    }
+
+    let mut ct = data[..data.len() - 16].to_vec();
+    let tag = aes_gcm::Tag::from_slice(&data[data.len() - 16..]);
+
+    cipher
+        .decrypt_in_place_detached(nonce, aad, &mut ct, tag)
+        .is_ok()
 }

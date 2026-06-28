@@ -8,8 +8,8 @@ FlagDrive is a secure, cloud-based government file storage and sharing portal de
 
 For detailed guides on how to install, build, run, and develop the different parts of FlagDrive, refer to their individual READMEs:
 
-* **[Frontend SPA (Leptos + Tailwind CSS) Documentation](service/frontend/README.md)**
-* **[Backend Web Server (Axum + SQLx + SQLite) Documentation](service/backend/README.md)**
+* **[Frontend SPA (Leptos + Tailwind CSS) Documentation](documentation/FRONTEND.md)**
+* **[Backend Web Server (Axum + SQLx + SQLite) Documentation](documentation/BACKEND.md)**
 
 ---
 

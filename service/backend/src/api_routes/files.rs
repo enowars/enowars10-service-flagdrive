@@ -1,6 +1,7 @@
 use crate::FlagDriveAPIState;
 use crate::crypto::{
-    aes_gcm_decrypt, aes_gcm_decrypt_no_verify, aes_gcm_encrypt, aes_gcm_verify, construct_iv,
+    aes_gcm_decrypt, aes_gcm_decrypt_no_verify, aes_gcm_encrypt, aes_gcm_verify_with_aad,
+    construct_iv,
 };
 use crate::database::{
     add_upload_file, get_download_file, get_user_encryption_key, get_user_files,
@@ -142,12 +143,13 @@ pub async fn upload_file(
 
         let constructed_iv = construct_iv(&username);
 
-        if !aes_gcm_verify(
+        if !aes_gcm_verify_with_aad(
             ct_tag,
             &user_key,
             &key,
             &api_state.server_key,
-            &constructed_iv,
+            &provided_iv,
+            &provided_iv,
         ) {
             return Response::builder()
                 .status(StatusCode::BAD_REQUEST)
