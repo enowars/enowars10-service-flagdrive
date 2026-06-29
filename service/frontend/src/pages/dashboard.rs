@@ -1,8 +1,8 @@
 use crate::app::{AppState, Page};
+use crate::components::download_modal::DownloadModal;
 use crate::components::file_card::FileCard;
 use crate::components::navbar::Navbar;
 use crate::components::upload_modal::UploadModal;
-use crate::components::download_modal::DownloadModal;
 use flagdrive_shared::{FileListRequest, FlagDriveFile};
 use leptos::prelude::*;
 use wasm_bindgen::JsCast;
@@ -10,16 +10,14 @@ use wasm_bindgen::JsCast;
 #[component]
 pub fn Dashboard() -> impl IntoView {
     let state = expect_context::<AppState>();
-    
+
     Effect::new(move |_| {
         if state.username.get().is_none() {
             state.page.set(Page::Login);
         }
     });
 
-    let username = move || {
-        state.username.get().unwrap_or_default()
-    };
+    let username = move || state.username.get().unwrap_or_default();
 
     let show_upload_modal = RwSignal::new(false);
     let download_target = RwSignal::new(None::<FlagDriveFile>);
@@ -33,13 +31,10 @@ pub fn Dashboard() -> impl IntoView {
             }
             let origin = web_sys::window().unwrap().location().origin().unwrap();
             let opts = web_sys::RequestInit::new();
-            
+
             if let Some(t) = token {
                 opts.set_method("POST");
-                let json_payload = serde_json::to_string(&FileListRequest {
-                    token: t,
-                })
-                .unwrap();
+                let json_payload = serde_json::to_string(&FileListRequest { token: t }).unwrap();
                 opts.set_body(&wasm_bindgen::JsValue::from_str(&json_payload));
                 let headers = web_sys::Headers::new().unwrap();
                 headers.append("Content-Type", "application/json").unwrap();
@@ -48,16 +43,24 @@ pub fn Dashboard() -> impl IntoView {
                 opts.set_method("GET");
             }
 
-            
-            let request = web_sys::Request::new_with_str_and_init(&format!("{}/api/files/{}", origin, user), &opts).ok()?;
+            let request = web_sys::Request::new_with_str_and_init(
+                &format!("{}/api/files/{}", origin, user),
+                &opts,
+            )
+            .ok()?;
             let window = web_sys::window().unwrap();
-            let resp_value = wasm_bindgen_futures::JsFuture::from(window.fetch_with_request(&request)).await.ok()?;
+            let resp_value =
+                wasm_bindgen_futures::JsFuture::from(window.fetch_with_request(&request))
+                    .await
+                    .ok()?;
             let resp: web_sys::Response = resp_value.dyn_into().ok()?;
             if !resp.ok() {
                 return None;
             }
             let text_promise = resp.text().ok()?;
-            let text_value = wasm_bindgen_futures::JsFuture::from(text_promise).await.ok()?;
+            let text_value = wasm_bindgen_futures::JsFuture::from(text_promise)
+                .await
+                .ok()?;
             let text_str = text_value.as_string()?;
             leptos::serde_json::from_str::<Vec<FlagDriveFile>>(&text_str).ok()
         }

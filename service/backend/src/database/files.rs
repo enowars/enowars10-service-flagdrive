@@ -1,10 +1,10 @@
+use crate::database::DbPool;
 use flagdrive_shared::{FlagDriveFile, FlagDriveFileVisibility};
-use sqlx::sqlite::SqlitePool;
 use sqlx::Row;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 pub async fn get_user_files(
-    pool: &SqlitePool,
+    pool: &DbPool,
     username: &str,
     viewer: Option<&str>,
 ) -> Result<Vec<FlagDriveFile>, sqlx::Error> {
@@ -12,17 +12,25 @@ pub async fn get_user_files(
 
     let rows = sqlx::query(
         "SELECT id, name, owner, visibility, size, created_at, protection_key, is_protected FROM files \
-         WHERE ( \
-             owner = $1 \
-             OR (owner IN (SELECT followee FROM follows WHERE follower = $1) AND (visibility = 1 OR visibility = 3)) \
-             OR (owner IN (SELECT follower FROM follows WHERE followee = $1) AND visibility = 2) \
-         ) \
-         AND ( \
-             visibility = 1 \
-             OR owner = $2 \
-             OR (owner IN (SELECT followee FROM follows WHERE follower = $2) AND (visibility = 1 OR visibility = 3)) \
-             OR (owner IN (SELECT follower FROM follows WHERE followee = $2) AND visibility = 2) \
-         )"
+         WHERE owner = $1 \
+           AND ( \
+               visibility = 1 \
+               OR $2 = $1 \
+               OR ($2 IN (SELECT follower FROM follows WHERE followee = $1) AND (visibility = 1 OR visibility = 3)) \
+               OR ($2 IN (SELECT followee FROM follows WHERE follower = $1) AND visibility = 2) \
+           ) \
+         UNION ALL \
+         SELECT id, name, owner, visibility, size, created_at, protection_key, is_protected FROM files \
+         WHERE owner IN (SELECT followee FROM follows WHERE follower = $1) \
+           AND ( \
+               visibility = 1 \
+               OR (visibility = 3 AND (owner = $2 OR $2 IN (SELECT follower FROM follows WHERE followee = owner))) \
+           ) \
+         UNION ALL \
+         SELECT id, name, owner, visibility, size, created_at, protection_key, is_protected FROM files \
+         WHERE owner IN (SELECT follower FROM follows WHERE followee = $1) \
+           AND visibility = 2 \
+           AND (owner = $2 OR $2 IN (SELECT followee FROM follows WHERE follower = owner))"
     )
     .bind(username)
     .bind(viewer_str)
@@ -43,7 +51,7 @@ pub async fn get_user_files(
             },
             size: row.get::<i64, _>("size") as u64,
             created_at: row.get::<i64, _>("created_at") as u64,
-            is_protected: row.get::<i64, _>("is_protected") != 0,
+            is_protected: row.get::<bool, _>("is_protected"),
         })
         .collect();
 
@@ -51,7 +59,7 @@ pub async fn get_user_files(
 }
 
 pub async fn add_upload_file(
-    pool: &SqlitePool,
+    pool: &DbPool,
     id: i64,
     name: &str,
     owner: &str,
@@ -69,7 +77,7 @@ pub async fn add_upload_file(
 
     sqlx::query(
         "INSERT INTO files (id, name, owner, visibility, size, content, created_at, protection_key, is_protected) \
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
     )
     .bind(id)
     .bind(name)
@@ -79,7 +87,7 @@ pub async fn add_upload_file(
     .bind(content)
     .bind(now as i64)
     .bind(protection_key)
-    .bind(is_protected)
+    .bind(is_protected != 0)
     .execute(pool)
     .await?;
 
@@ -87,12 +95,12 @@ pub async fn add_upload_file(
 }
 
 pub async fn get_download_file(
-    pool: &SqlitePool,
+    pool: &DbPool,
     id: i64,
 ) -> Result<(FlagDriveFile, Vec<u8>, String), sqlx::Error> {
     let row = sqlx::query(
         "SELECT id, name, owner, visibility, size, content, created_at, protection_key, is_protected FROM files \
-         WHERE id = ?",
+         WHERE id = $1",
     )
     .bind(id)
     .fetch_one(pool)
@@ -111,7 +119,7 @@ pub async fn get_download_file(
             },
             size: row.get::<i64, _>("size") as u64,
             created_at: row.get::<i64, _>("created_at") as u64,
-            is_protected: row.get::<i64, _>("is_protected") != 0,
+            is_protected: row.get::<bool, _>("is_protected"),
         },
         row.get("content"),
         row.get("protection_key"),

@@ -11,4 +11,19 @@ pub struct Args {
 
     #[arg(long = "dist", default_value = "./dist")]
     pub dist: String,
+
+    #[arg(long = "pg-host")]
+    pub pg_host: Option<String>,
+
+    #[arg(long = "pg-port")]
+    pub pg_port: Option<u16>,
+
+    #[arg(long = "pg-user")]
+    pub pg_user: Option<String>,
+
+    #[arg(long = "pg-password")]
+    pub pg_password: Option<String>,
+
+    #[arg(long = "pg-dbname")]
+    pub pg_dbname: Option<String>,
 }

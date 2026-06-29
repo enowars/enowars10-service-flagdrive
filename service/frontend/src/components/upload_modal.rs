@@ -78,15 +78,17 @@ where
 
                 let json_payload = serde_json::to_string(&flagdrive_shared::UploadMetadata {
                     token,
-                    key: if enc_key.is_empty() { None } else { Some(enc_key) },
+                    key: if enc_key.is_empty() {
+                        None
+                    } else {
+                        Some(enc_key)
+                    },
                     visibility: vis,
                     backup: None,
                 })
                 .unwrap();
 
-                form_data
-                    .append_with_str("json", &json_payload)
-                    .unwrap();
+                form_data.append_with_str("json", &json_payload).unwrap();
 
                 let opts = web_sys::RequestInit::new();
                 opts.set_method("POST");

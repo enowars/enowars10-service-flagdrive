@@ -41,7 +41,7 @@ async def havoc_6(
         raise MumbleException("Backup content is too short")
 
     backup_filename = "".join(random.choices(string.ascii_lowercase, k=8)) + ".txt"
-    
+
     new_file_id = await flag_client.upload_file(
         token=token,
         filename=backup_filename,

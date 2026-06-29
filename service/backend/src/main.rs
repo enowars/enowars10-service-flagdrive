@@ -22,15 +22,38 @@ use axum::{
 };
 use clap::Parser;
 use cli::Args;
+use database::DbPool;
 use serde_json::{Value, json};
-use sqlx::SqlitePool;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tower_http::services::ServeDir;
 
 #[tokio::main]
 async fn main() {
     let args = Args::parse();
-    let database_url = format!("sqlite://{}", args.database);
+    let database_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+        if args.pg_host.is_some() || args.pg_user.is_some() || args.pg_dbname.is_some() {
+            let host = args.pg_host.unwrap_or_else(|| "localhost".to_string());
+            let port = args.pg_port.unwrap_or(5432);
+            let user = args.pg_user.unwrap_or_else(|| "flagdrive".to_string());
+            let password = args
+                .pg_password
+                .unwrap_or_else(|| "flagdrivepassword".to_string());
+            let dbname = args.pg_dbname.unwrap_or_else(|| "flagdrive".to_string());
+            format!(
+                "postgres://{}:{}@{}:{}/{}",
+                user, password, host, port, dbname
+            )
+        } else if args.database.starts_with("postgres://")
+            || args.database.starts_with("postgresql://")
+        {
+            args.database.clone()
+        } else {
+            "postgres://flagdrive:flagdrivepassword@localhost:5432/flagdrive".to_string()
+        }
+    });
+
+    println!("Database type: PostgreSQL");
+
     let pool = database::connect_to_db(&database_url).await;
     let server_key = database::get_or_create_server_key(&pool)
         .await
@@ -81,14 +104,13 @@ async fn main() {
 
     let listener = tokio::net::TcpListener::bind(&args.addr).await.unwrap();
     println!("Frontend dir: {}", args.dist);
-    println!("Database file: {}", args.database);
     println!("Listening on: http://{}", args.addr);
     axum::serve(listener, app).await.unwrap();
 }
 
 #[derive(Clone)]
 pub struct FlagDriveAPIState {
-    pub pool: SqlitePool,
+    pub pool: DbPool,
     pub server_key: String,
 }
 

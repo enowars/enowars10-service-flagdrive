@@ -1,7 +1,7 @@
 use crate::FlagDriveAPIState;
 use crate::database::{delete_token, get_username_from_token};
 use axum::{Json, body::Body, extract::State, http::StatusCode, response::Response};
-use flagdrive_shared::{TokenRequest, TokenVerifyResponse, SuccessMessageResponse, ErrorResponse};
+use flagdrive_shared::{ErrorResponse, SuccessMessageResponse, TokenRequest, TokenVerifyResponse};
 
 pub async fn verify_token(
     State(state): State<FlagDriveAPIState>,
@@ -73,4 +73,3 @@ pub async fn logout_token(
         ))
         .unwrap()
 }
-

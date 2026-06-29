@@ -1,9 +1,9 @@
-use flagdrive_shared::TokenRequest;
 use codee::string::JsonSerdeCodec;
-use wasm_bindgen::JsCast;
+use flagdrive_shared::TokenRequest;
 use leptos::prelude::*;
 use leptos_use::storage::use_local_storage;
 use leptos_use::{ColorMode, UseColorModeOptions, UseColorModeReturn, use_color_mode_with_options};
+use wasm_bindgen::JsCast;
 
 use crate::pages::{
     dashboard::Dashboard, landing::Landing, login::Login, profile::Profile, register::Register,
@@ -54,17 +54,21 @@ pub fn App() -> impl IntoView {
             let headers = web_sys::Headers::new().unwrap();
             headers.append("Content-Type", "application/json").unwrap();
             opts.set_headers(&headers);
-            
-            let payload = serde_json::to_string(&TokenRequest {
-                token,
-            })
-            .unwrap();
+
+            let payload = serde_json::to_string(&TokenRequest { token }).unwrap();
             opts.set_body(&wasm_bindgen::JsValue::from_str(&payload));
 
             if let Some(window) = web_sys::window() {
                 if let Ok(origin) = window.location().origin() {
-                    if let Ok(request) = web_sys::Request::new_with_str_and_init(&format!("{}/api/token/verify", origin), &opts) {
-                        if let Ok(resp_value) = wasm_bindgen_futures::JsFuture::from(window.fetch_with_request(&request)).await {
+                    if let Ok(request) = web_sys::Request::new_with_str_and_init(
+                        &format!("{}/api/token/verify", origin),
+                        &opts,
+                    ) {
+                        if let Ok(resp_value) = wasm_bindgen_futures::JsFuture::from(
+                            window.fetch_with_request(&request),
+                        )
+                        .await
+                        {
                             if let Ok(resp) = resp_value.dyn_into::<web_sys::Response>() {
                                 if !resp.ok() {
                                     set_auth_token_clone.set(None);
