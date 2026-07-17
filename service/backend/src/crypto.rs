@@ -54,6 +54,7 @@ pub fn aes_gcm_encrypt(
     file_key: &str,
     server_key: &str,
     iv: &[u8; 12],
+    aad: &[u8],
 ) -> Vec<u8> {
     let key_bytes = derive_aes_key(user_key, file_key, server_key);
     let key = Key::<Aes256Gcm>::from_slice(&key_bytes);
@@ -61,7 +62,7 @@ pub fn aes_gcm_encrypt(
     let nonce = Nonce::from_slice(iv);
 
     let mut buffer = data.to_vec();
-    match cipher.encrypt_in_place_detached(nonce, iv, &mut buffer) {
+    match cipher.encrypt_in_place_detached(nonce, aad, &mut buffer) {
         Ok(tag) => {
             buffer.extend_from_slice(&tag);
             buffer
@@ -76,6 +77,7 @@ pub fn aes_gcm_decrypt(
     file_key: &str,
     server_key: &str,
     iv: &[u8; 12],
+    aad: &[u8],
 ) -> Result<Vec<u8>, aes_gcm::Error> {
     let key_bytes = derive_aes_key(user_key, file_key, server_key);
     let key = Key::<Aes256Gcm>::from_slice(&key_bytes);
@@ -89,7 +91,7 @@ pub fn aes_gcm_decrypt(
     let mut ct = data[..data.len() - 16].to_vec();
     let tag = aes_gcm::Tag::from_slice(&data[data.len() - 16..]);
 
-    cipher.decrypt_in_place_detached(nonce, iv, &mut ct, tag)?;
+    cipher.decrypt_in_place_detached(nonce, aad, &mut ct, tag)?;
     Ok(ct)
 }
 

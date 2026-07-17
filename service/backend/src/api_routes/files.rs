@@ -143,13 +143,17 @@ pub async fn upload_file(
 
         let constructed_iv = construct_iv(&username);
 
+        let mut verification_aad = Vec::with_capacity(12 + username.len());
+        verification_aad.extend_from_slice(&provided_iv);
+        verification_aad.extend_from_slice(username.as_bytes());
+
         if !aes_gcm_verify_with_aad(
             ct_tag,
             &user_key,
             &key,
             &api_state.server_key,
             &provided_iv,
-            &provided_iv,
+            &verification_aad,
         ) {
             return Response::builder()
                 .status(StatusCode::BAD_REQUEST)
@@ -167,19 +171,28 @@ pub async fn upload_file(
         let decrypted_plaintext =
             aes_gcm_decrypt_no_verify(ct, &user_key, &key, &api_state.server_key, &provided_iv);
 
+        let mut encrypt_aad = Vec::with_capacity(12 + username.len());
+        encrypt_aad.extend_from_slice(&constructed_iv);
+        encrypt_aad.extend_from_slice(username.as_bytes());
+
         let encrypted = aes_gcm_encrypt(
             &decrypted_plaintext,
             &user_key,
             &key,
             &api_state.server_key,
             &constructed_iv,
+            &encrypt_aad,
         );
 
         (encrypted, if !key.is_empty() { 1 } else { 0 })
     } else {
         let iv = construct_iv(&username);
+        let mut encrypt_aad = Vec::with_capacity(12 + username.len());
+        encrypt_aad.extend_from_slice(&iv);
+        encrypt_aad.extend_from_slice(username.as_bytes());
+
         let encrypted =
-            aes_gcm_encrypt(&content_bytes, &user_key, &key, &api_state.server_key, &iv);
+            aes_gcm_encrypt(&content_bytes, &user_key, &key, &api_state.server_key, &iv, &encrypt_aad);
         (encrypted, if !key.is_empty() { 1 } else { 0 })
     };
 
@@ -335,8 +348,18 @@ pub async fn download_file(
 
         let decrypt_key = if file.is_protected { key } else { "" };
         let iv = construct_iv(&file.owner);
+        let mut decrypt_aad = Vec::with_capacity(12 + file.owner.len());
+        decrypt_aad.extend_from_slice(&iv);
+        decrypt_aad.extend_from_slice(file.owner.as_bytes());
 
-        match aes_gcm_decrypt(&content, &user_key, decrypt_key, &api_state.server_key, &iv) {
+        match aes_gcm_decrypt(
+            &content,
+            &user_key,
+            decrypt_key,
+            &api_state.server_key,
+            &iv,
+            &decrypt_aad,
+        ) {
             Ok(decrypted) => decrypted,
             Err(_) => {
                 return Response::builder()

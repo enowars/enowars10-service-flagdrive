@@ -3,7 +3,7 @@ import string
 from logging import LoggerAdapter
 from enochecker3 import ChainDB, PutflagCheckerTaskMessage, GetflagCheckerTaskMessage, MumbleException
 from checker import checker
-from utils import FlagDriveClient
+from utils import FlagDriveClient, get_random_meme
 
 @checker.putflag(2)
 async def putflag_iv_reuse(
@@ -20,7 +20,7 @@ async def putflag_iv_reuse(
 
     file_id = await flag_client.upload_file(
         token,
-        "1048596",
+        get_random_meme(),
         task.flag.encode(),
         f"{file_password}",
         1,

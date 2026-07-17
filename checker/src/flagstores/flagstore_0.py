@@ -4,7 +4,7 @@ import json
 from logging import LoggerAdapter
 from enochecker3 import ChainDB, PutflagCheckerTaskMessage, GetflagCheckerTaskMessage, MumbleException
 from checker import checker
-from utils import FlagDriveClient
+from utils import FlagDriveClient, get_random_meme
 
 @checker.putflag(0)
 async def putflag_gdpr_info(
@@ -22,7 +22,7 @@ async def putflag_gdpr_info(
     file_id = await flag_client.upload_file(
         token,
         f"{task.flag}",
-        b"El Psy Kongroo",
+        get_random_meme().encode(),
         encryption_key,
         0,
     )

@@ -3,7 +3,7 @@ import string
 from logging import LoggerAdapter
 from enochecker3 import ChainDB, PutflagCheckerTaskMessage, GetflagCheckerTaskMessage, MumbleException
 from checker import checker
-from utils import FlagDriveClient
+from utils import FlagDriveClient, get_random_meme
 
 @checker.putflag(1)
 async def putflag_follow_download(
@@ -19,7 +19,7 @@ async def putflag_follow_download(
 
     file_id = await flag_client.upload_file(
         token,
-        "El Psy Kongroo",
+        get_random_meme(),
         task.flag.encode(),
         "",
         2,

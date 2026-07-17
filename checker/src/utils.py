@@ -205,3 +205,48 @@ class FlagDriveClient:
             self.logger.error(f"GDPR download failed: {response.text}")
             raise MumbleException("Failed to download GDPR export")
         return response.content
+
+
+import random
+
+GOVERNMENT_MEMES = [
+    "Birds Are Not Real",
+    "Area 51 Security Clearance Protocol",
+    "Classified War Thunder Tank Blueprints",
+    "CIA Glow-in-the-Dark Operations",
+    "FBI Webcam Monitoring Agent",
+    "Operation MKUltra Phase 2",
+    "Department of Silly Walks Directive",
+    "Obama's Secret Last Name",
+    "Defcon 1 Microwave Popcorn Instructions",
+    "Classified UFO Retrieval Log",
+    "Majestic 12 Meeting Minutes",
+    "Federal Tax Loophole Cheatcodes",
+    "Chemtrail Dispersal Schedule",
+    "Illuminati Membership Application",
+    "Nothing Happened On Square",
+    "Pentagon Alien Database Backups",
+    "SCP Foundation Containment Breach",
+    "Cheyenne Mountain Stargate Log",
+    "NSA PRISM Surveillance Metadata",
+    "IRS Audit Exemption Certificate",
+    "Lizard People Underground Highway Map",
+    "Watergate Tape Missing 18 Minutes Transcript",
+    "Weather Balloon Swapped for UFO Report",
+    "There is no war in Ba Sing Se",
+    "Dai Li Brainwashing Program Guidelines",
+    "SERN Time Travel Research Archive",
+    "IBN 5100 Decoding Manual",
+    "John Titor Time Machine Operating Instructions",
+    "Aperture Science Companion Cube Disposal Protocol",
+    "The Cake Is A Lie Investigation Report",
+    "Umbrella Corporation T-Virus Elite Genetic Design Plan",
+    "SEELE Human Instrumentality Project Implementation Plan",
+    "Future Gadget Laboratory: Operation Steins;Gate",
+    "FGL Secret Agent Passcode: El Psy Kongroo",
+    "Speedwagon Foundation Coffin Recovery Report: DIO is Alive"
+]
+
+def get_random_meme() -> str:
+    return random.choice(GOVERNMENT_MEMES)
+

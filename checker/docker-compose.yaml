@@ -26,10 +26,10 @@ services:
         soft: 4000
         hard: 4000
   flagdirve-mongo:
-    image: mongo@sha256:a706cb4e493bcd0262f345b3b0c78732ca0e54301f0d7bbe2b66f26313ce7ccb
+    image: mongo@sha256:8ecb514b00bdcc0bde67ef4e6c330385377a9dc68e24ee94e28c07c891647348
     restart: unless-stopped
     volumes:
-      - mongo-data:/data/db
+      - ./data:/data/db
     environment:
       MONGO_INITDB_ROOT_USERNAME: flagdrive-user
       MONGO_INITDB_ROOT_PASSWORD: flagdrive-password
@@ -42,9 +42,6 @@ services:
       nproc:
         soft: 4000
         hard: 4000
-
-volumes:
-  mongo-data:
 
 networks:
   default:
