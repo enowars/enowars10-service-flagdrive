@@ -7,12 +7,12 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     depends_on:
-      - flagdirve-mongo
+      - flagdrive-mongo
     ports:
       - 14859:8000
     environment:
       - MONGO_ENABLED=1
-      - MONGO_HOST=flagdirve-mongo
+      - MONGO_HOST=flagdrive-mongo
       - MONGO_PORT=27017
       - MONGO_USER=flagdrive-user
       - MONGO_PASSWORD=flagdrive-password
@@ -25,11 +25,11 @@ services:
       nproc:
         soft: 4000
         hard: 4000
-  flagdirve-mongo:
-    image: mongo@sha256:8ecb514b00bdcc0bde67ef4e6c330385377a9dc68e24ee94e28c07c891647348
+  flagdrive-mongo:
+    image: mongo:7
     restart: unless-stopped
     volumes:
-      - ./data:/data/db
+      - ./data/:/data/db
     environment:
       MONGO_INITDB_ROOT_USERNAME: flagdrive-user
       MONGO_INITDB_ROOT_PASSWORD: flagdrive-password
