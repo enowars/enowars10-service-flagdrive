@@ -20,9 +20,9 @@ impl AuthToken {
 
     pub fn build_container(&mut self) -> TokenContainer {
         TokenContainer(
-            std::mem::size_of::<Self>(),
+            self.token.len(),
             &raw mut self.token as usize,
-            std::mem::size_of::<Self>(),
+            self.token.len(),
         )
     }
 }
