@@ -1,0 +1,14 @@
+--- a/service/backend/src/auth.rs
++++ b/service/backend/src/auth.rs
+@@ -21,9 +21,9 @@ impl AuthToken {
+
+     pub fn build_container(&mut self) -> TokenContainer {
+         TokenContainer(
+-            std::mem::size_of::<Self>(),
++            std::mem::size_of::<Self>() - 1,
+             &raw mut self.token as usize,
+-            std::mem::size_of::<Self>(),
++            std::mem::size_of::<Self>() - 1,
+         )
+     }
+ }

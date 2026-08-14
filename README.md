@@ -1,43 +1,46 @@
 # FlagDrive (ENOWARS10 Service)
 
-FlagDrive is a secure, cloud-based government file storage and sharing portal developed for the **ENOWARS10 "Hack the Government" Attack/Defense CTF**. It allows citizens and government officials to upload documents, manage visibility clearances, securely download encrypted/unencrypted files, and follow/unfollow other users.
+FlagDrive is a secure, government-hosted document storage and file-sharing portal developed for the **ENOWARS10 Attack/Defense CTF**. It allows citizens and government officials to upload and download encrypted documents with different access permissions, as well as follow or unfollow other users to share documents with them.
 
 ---
 
-## Subproject Documentation
+## Repository Branches
 
-For detailed guides on how to install, build, run, and develop the different parts of FlagDrive, refer to their individual READMEs:
-
-* **[Frontend SPA (Leptos + Tailwind CSS) Documentation](documentation/FRONTEND.md)**
-* **[Backend Web Server (Axum + SQLx + SQLite) Documentation](documentation/BACKEND.md)**
+* **`main`**: Contains the vulnerable version of the FlagDrive service.
+* **`fixed`**: Contains the patched version of the FlagDrive service.
 
 ---
 
-## Running the Full Stack (Docker)
+## Quick Start
 
-The fastest and most reliable way to spin up the entire FlagDrive stack is using Docker Compose. This starts both the Axum backend and automatically serves the pre-compiled WebAssembly frontend.
+### Running the Service (Docker)
 
-### Prerequisites
-* [Docker](https://docs.docker.com/get-docker/)
-* [Docker Compose](https://docs.docker.com/compose/install/)
-
-### Commands
-
-**1. Launch the service:**
 ```bash
 cd service
-sudo docker compose up -d --build
+docker compose up -d --build
 ```
-This builds the chef-optimized multi-stage Docker image and deploys FlagDrive.
 
-**2. Accessing the application:**
-Once the containers are running, navigate your browser to:
-* **Frontend Portal & Backend API:** `http://127.0.0.1:4859`
+The application and API will be available at `http://127.0.0.1:4859`.
 
-**3. Stop the service:**
+### Running the Checker (Docker)
+
 ```bash
-sudo docker compose down
+cd checker
+docker compose up -d --build
 ```
+
+---
+
+## Documentation
+
+For full details on service architecture, flagstores, vulnerabilities, exploits, fixes, and component internals:
+
+* **[CTF Service Overview](documentation/README.md)**
+* **[Backend Architecture](documentation/BACKEND.md)**
+* **[Frontend Architecture](documentation/FRONTEND.md)**
+* **[Flagstore 0: GDPR Export Nonce Prefix Bruteforce](documentation/FLAGSTORE_0.md)**
+* **[Flagstore 1: Safe Rust Borrow Checker Buffer Overflow](documentation/FLAGSTORE_1.md)**
+* **[Flagstore 2: AES-256-GCM IV Reuse & GHASH Forgery](documentation/FLAGSTORE_2.md)**
 
 ---
 

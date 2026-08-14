@@ -1,10 +1,10 @@
-# FlagDrive Frontend
+# FlagDrive Frontend Architecture
 
-The frontend of FlagDrive is a single-page application (SPA) for the ENOWARS10 "Hack the Government" Attack/Defense CTF. It is built using [Leptos](https://leptos.dev/) (a Rust web framework) and styled with [Tailwind CSS v4](https://tailwindcss.com/).
+The frontend of FlagDrive is built using [Leptos](https://leptos.dev/) (a Rust web framework) and styled with [Tailwind CSS v4](https://tailwindcss.com/).
 
 ## Prerequisites
 
-To build and run this frontend, you will need the following tools installed on your system:
+To build and run the frontend locally, you will need the following tools installed on your system:
 
 1. **Rust & Cargo**: The Rust toolchain.
    ```bash
@@ -33,7 +33,7 @@ trunk serve
 ```
 The application will be available at `http://127.0.0.1:4859`.
 
-**To build for production:**
+**To build for release:**
 ```bash
 trunk build --release
 ```

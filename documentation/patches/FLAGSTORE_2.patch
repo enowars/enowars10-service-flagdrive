@@ -1,0 +1,22 @@
+--- a/service/backend/src/api_routes/files.rs
++++ b/service/backend/src/api_routes/files.rs
+@@ -144,6 +144,19 @@ pub async fn upload_file(
+
+         let constructed_iv = construct_iv(&username);
+
++        if provided_iv != constructed_iv {
++            return Response::builder()
++                .status(StatusCode::BAD_REQUEST)
++                .header("content-type", "application/json")
++                .body(Body::from(
++                    serde_json::to_string(&ErrorResponse {
++                        error: "Invalid backup IV".to_string(),
++                    })
++                    .unwrap(),
++                ))
++                .unwrap();
++        }
++
+         let mut verification_aad = Vec::with_capacity(12 + username.len());
+         verification_aad.extend_from_slice(&provided_iv);
+         verification_aad.extend_from_slice(username.as_bytes());
